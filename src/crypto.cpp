@@ -89,3 +89,50 @@ std::string decrypt(std::string encr_msg, std::string key_ID)
 
     return r;
 }
+
+std::string sign(std::string msg, std::string key_ID)
+{
+    CryptoPP::AutoSeededRandomPool prng;
+
+    std::string s;
+
+    //import priv
+    CryptoPP::RSA::PrivateKey prv = get_prv(key_ID);
+
+    // Sign and Encode
+    CryptoPP::RSASSA_PKCS1v15_SHA_Signer signer(prv);
+
+    CryptoPP::StringSource ss1(msg, true,
+                               new CryptoPP::SignerFilter(prng, signer,
+                                                          new CryptoPP::StringSink(s)) // SignerFilter
+    );                                                                                 // StringSource                                                                                     // StringSource                                                                       // StringSource
+
+    return s;
+}
+
+bool verify(std::string msg, std::string sign_msg, std::string key_ID)
+{
+    CryptoPP::AutoSeededRandomPool prng;
+
+    // std::string c;
+
+    //import public key
+    CryptoPP::RSA::PublicKey pub = get_pub(key_ID);
+
+    CryptoPP::RSASSA_PKCS1v15_SHA_Verifier verifier(pub);
+
+    // CryptoPP::StringSource ss2(msg + sign_msg, true,
+    //                  new CryptoPP::SignatureVerificationFilter(
+    //                      verifier, NULL,
+    //                     CryptoPP::SignatureVerificationFilter::THROW_EXCEPTION) // SignatureVerificationFilter
+    // );                                                                 // StringSource
+
+    bool result = false;
+    //   Verifier verifier(publicKey);
+    CryptoPP::StringSource ss2(sign_msg + msg, true,
+                               new CryptoPP::SignatureVerificationFilter(verifier,
+                                                                         new CryptoPP::ArraySink((byte *)&result,
+                                                                                                 sizeof(result))));
+
+    return result;
+}

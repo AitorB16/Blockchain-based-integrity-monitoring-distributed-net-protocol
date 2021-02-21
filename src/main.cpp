@@ -9,11 +9,18 @@
 int main(void)
 {
     std::string key_ID = "1";
-    generate_keys(key_ID);
-    std::string enc_msg = encrypt("fasfasfsafsaf", key_ID);
+    std::string msg = "SECRET";
+
+    //  generate_keys(key_ID);
+    // std::string encripted_msg = encrypt(msg, key_ID);
     // std::cout << "c: " << enc_msg << std::endl;
-    
-    std::string recovered = decrypt(enc_msg, key_ID);
-    std::cout << "recovered: " << recovered << std::endl;
+
+    // std::string recovered = decrypt(encripted_msg, key_ID);
+    // std::cout << "recovered: " << recovered << std::endl;
+
+    std::string signed_msg = sign(msg, key_ID);
+    bool verification = verify(msg, signed_msg, key_ID);
+    std::cout << "Verified: " << verification << std::endl;
+
     return 0;
 }
