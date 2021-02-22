@@ -2,8 +2,11 @@
 #ifndef CRYPTO_H
 #define CRYPTO_H
 
-#include <cryptopp/base64.h>
 #include <cryptopp/rsa.h>
+#include <cryptopp/integer.h>
+#include <cryptopp/osrng.h>
+#include <cryptopp/base64.h>
+#include <cryptopp/files.h>
 
 void generate_keys(std::string key_ID);
 

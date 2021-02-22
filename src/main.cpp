@@ -4,23 +4,22 @@
 #include <stdlib.h>
 #include <cryptopp/integer.h>
 
-#include "crypto.hpp"
+// #include "crypto.hpp"
+#include "infra.hpp"
+using namespace std;
 
 int main(void)
 {
-    std::string key_ID = "1";
-    std::string msg = "SECRET";
 
-    //  generate_keys(key_ID);
-    // std::string encripted_msg = encrypt(msg, key_ID);
-    // std::cout << "c: " << enc_msg << std::endl;
+    infra *s = s->getInstance();
 
-    // std::string recovered = decrypt(encripted_msg, key_ID);
-    // std::cout << "recovered: " << recovered << std::endl;
+    cout << s->getID() << endl;
 
-    std::string signed_msg = sign(msg, key_ID);
-    bool verification = verify(msg, signed_msg, key_ID);
-    std::cout << "Verified: " << verification << std::endl;
+    // s->setID(2);
+
+    cout << s->getID() << endl;
+
+    s->printAdjNodes();
 
     return 0;
 }

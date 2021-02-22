@@ -4,11 +4,11 @@ CC=g++
 
 IDIR = ../src
 # ODIR = ../obj
-# LDIR = ../lib
+# LDIR = ../include
 
-DEPS = main.hpp crypto.hpp
+DEPS = main.hpp crypto.hpp infra.hpp nodo.hpp
 
-OBJ = main.o crypto.o
+OBJ = main.o crypto.o infra.o nodo.o
 
 
 CFLAGS=-I .
