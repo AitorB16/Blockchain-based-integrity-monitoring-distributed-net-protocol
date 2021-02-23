@@ -17,9 +17,18 @@ int main(void)
 
     // s->setID(2);
 
-    cout << s->getID() << endl;
-
     s->printAdjNodes();
+
+    // SERVER INDEPENDENT PID FORK
+    s->initializeServer();
+
+    //CLIENT
+    s->connectToAdjacent(2);
+    s->sendString(2,"PROBA");
+
+
+
+    // s->connectToAdjacents();
 
     return 0;
 }

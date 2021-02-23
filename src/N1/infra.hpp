@@ -13,8 +13,8 @@
 #include <fstream>
 #include <vector>
 
-#include "../include/rapidxml-1.13/rapidxml.hpp"
-#include "../include/rapidxml-1.13/rapidxml_utils.hpp"
+#include "../../include/rapidxml-1.13/rapidxml.hpp"
+#include "../../include/rapidxml-1.13/rapidxml_utils.hpp"
 
 #include "nodo.hpp"
 #include "crypto.hpp"
@@ -35,6 +35,11 @@ public:
     int getID();
     void setID(int id);
     void printAdjNodes();
+    void initializeServer();
+    void connectToAdjacents();
+    void connectToAdjacent(int ID);
+    void sendString(int ID, const char* msg);
+    // void sendPackage();sendPackage Google buffer, XML
 };
 
 #endif

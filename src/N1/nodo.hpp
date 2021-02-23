@@ -8,14 +8,18 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <unistd.h>
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <stdexcept>
 
 class nodo
 {
 private:
     int ID;
+    int sock;
+    const char* IP;
     struct sockaddr_in addr;
     int port;
     bool trusted;
@@ -25,8 +29,14 @@ private:
 
 public:
     nodo();
-    nodo(int ID, const char* ip, int port, CryptoPP::RSA::PublicKey pub, CryptoPP::RSA::PublicKey prv, std::string hash_record);
+    nodo(int ID, const char *ip, int port, CryptoPP::RSA::PublicKey pub, CryptoPP::RSA::PublicKey prv, std::string hash_record);
     int getID();
+    void setID(int ID);
+    void createClientSocket();
+    void createServerSocket();
+    void serverUP(int max_c);
+    int estConnection();
+    int sendString(const char* codigo);
 };
 
 #endif
