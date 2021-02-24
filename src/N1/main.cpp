@@ -1,11 +1,4 @@
-// g++ -std=c++1y crypto.cpp -I /home/shravan40/cryptopp/build -lcryptopp
-
-#include <iostream>
-#include <stdlib.h>
-#include <cryptopp/integer.h>
-
-// #include "crypto.hpp"
-#include "infra.hpp"
+#include "main.hpp"
 using namespace std;
 
 int main(void)
@@ -19,14 +12,54 @@ int main(void)
 
     s->printAdjNodes();
 
-    // SERVER INDEPENDENT PID FORK
-    s->initializeServer();
+    pid_t pid = fork();
 
-    //CLIENT
-    s->connectToAdjacent(2);
-    s->sendString(2,"PROBA");
+    if (pid == 0)
+    {
+        // SERVER INDEPENDENT PID FORK
+        // cout << "Server UP" << endl;
+        s->initializeServer();
+    }
+    else
+    {
+        const char *response;
+        int option;
 
+        // sleep(20);
+        // s->connectToAdjacent(2); //if success...
+        //CLIENT
 
+        while (1)
+        {
+
+            // waitpid(-1, NULL, WNOHANG); //KILL ZOMBIE PROCESSES
+
+            cout << "Enter options" << endl;
+            cin >> option;
+            switch (option)
+            {
+            case 0:
+                cout << "killing server" << endl;
+                kill(pid, SIGKILL);
+                waitpid(pid, NULL, 0); //KILL SERVER (if no thread running OK) all threads should be individualy killed.
+                break;
+            case 1:
+                cout << "Exiting infra" << endl;
+                kill(pid, SIGKILL);
+                waitpid(pid, NULL, 0);
+                exit(0);
+                break;
+            case 2:
+                cout << s->imTrusted() << endl;
+            default:
+                break;
+            }
+
+            // s->sendString(2, ":exit");
+            // s->recvString(2, response); //Hay que solucionar response
+            // waitpid(-1, NULL, WNOHANG); //KILL ZOMBIE PROCESSES
+        }
+    }
 
     // s->connectToAdjacents();
 

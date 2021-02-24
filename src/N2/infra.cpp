@@ -76,10 +76,6 @@ void infra::setID(int ID)
     self->setID(ID);
 }
 
-bool infra::imTrusted(){
-    return self->imTrusted();
-}
-
 void infra::printAdjNodes()
 {
     for (auto const &i : adj_nodes)

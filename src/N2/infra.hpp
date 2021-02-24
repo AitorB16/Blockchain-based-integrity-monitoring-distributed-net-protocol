@@ -33,9 +33,7 @@ private:
 public:
     static infra *getInstance();
     int getID();
-    void setID(int ID);
-    bool imTrusted();
-    // bool isTrsuted(int ID);
+    void setID(int id);
     void printAdjNodes();
     void initializeServer();
     void connectToAdjacents();

@@ -13,12 +13,9 @@
 #include <vector>
 #include <stdexcept>
 
-#include <fcntl.h>  // for open
+#include <fcntl.h> // for open
 #include <unistd.h> // for close
-#include <pthread.h>
-
-#include <sys/types.h>
-#include <sys/wait.h>
+#include<pthread.h>
 
 // char client_message[2000];
 // char buffer1[1024];
@@ -26,13 +23,12 @@
 // char buffer2[1024];
 // pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
-
 class nodo
 {
 private:
     int ID;
     int sock;
-    const char *IP;
+    const char* IP;
     struct sockaddr_in addr;
     int port;
     bool trusted;
@@ -45,14 +41,13 @@ public:
     nodo(int ID, const char *ip, int port, CryptoPP::RSA::PublicKey pub, CryptoPP::RSA::PublicKey prv, std::string hash_record);
     int getID();
     void setID(int ID);
-    bool imTrusted();
     void createClientSocket();
     void createServerSocket();
-    int serverUP(int max_c);
-    void socketThread(int clientSocket);
+    void serverUP(int max_c);
+    // void *socketThread(void *arg);
     int estConnection();
-    int sendString(const char *codigo);
-    int recvString(const char *servResponse);
+    int sendString(const char* codigo);
+    int recvString(const char* servResponse);
 };
 
 #endif
