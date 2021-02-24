@@ -33,11 +33,14 @@ private:
 public:
     static infra *getInstance();
     int getID();
-    void setID(int id);
+    void setID(int ID);
+    bool imTrusted();
+    // bool isTrsuted(int ID);
     void printAdjNodes();
     void initializeServer();
     void connectToAdjacents();
     void connectToAdjacent(int ID);
+    void reassembleSocket(int ID);
     void sendString(int ID, const char* msg);
     void recvString(int ID, const char* servResponse);
     // void sendPackage();sendPackage Google buffer, XML

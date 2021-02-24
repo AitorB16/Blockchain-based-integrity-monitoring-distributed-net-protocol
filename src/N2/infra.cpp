@@ -76,6 +76,11 @@ void infra::setID(int ID)
     self->setID(ID);
 }
 
+bool infra::imTrusted()
+{
+    return self->imTrusted();
+}
+
 void infra::printAdjNodes()
 {
     for (auto const &i : adj_nodes)
@@ -134,6 +139,23 @@ void infra::connectToAdjacent(int ID)
         std::cerr << e.what() << '\n';
     }
 }
+void infra::reassembleSocket(int ID)
+{
+    try
+    {
+        for (auto const &i : adj_nodes)
+        {
+            if (i->getID() == ID)
+            {
+                i->createClientSocket();
+            }
+        }
+    }
+    catch (const std::exception &e)
+    {
+        std::cerr << e.what() << '\n';
+    }
+}
 
 void infra::sendString(int ID, const char *msg)
 {
@@ -156,7 +178,7 @@ void infra::sendString(int ID, const char *msg)
     }
 }
 
-void infra::recvString(int ID, const char* servResponse)
+void infra::recvString(int ID, const char *servResponse)
 {
     try
     {

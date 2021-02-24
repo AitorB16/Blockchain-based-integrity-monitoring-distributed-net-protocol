@@ -12,7 +12,7 @@ OBJ = main.o crypto.o infra.o nodo.o
 
 
 CFLAGS=-I .
-LIBS = -lcryptopp
+LIBS = -lcryptopp -lpthread
 
 %.o: %.c $(DEPS)
 	$(CC) -std=c++1y -c -o $@ $< $(CFLAGS)

@@ -1,5 +1,8 @@
 #include "nodo.hpp"
 using namespace std;
+
+// nodo *n;
+
 nodo::nodo(){
 
 };
@@ -24,7 +27,12 @@ void nodo::setID(int ID)
 {
     nodo::ID = ID;
 }
-bool nodo::imTrusted(){
+sockaddr_in nodo::getAddr()
+{
+    return nodo::addr;
+}
+bool nodo::imTrusted()
+{
     return nodo::trusted;
 }
 void nodo::createClientSocket()
@@ -75,14 +83,50 @@ void nodo::createServerSocket()
         throw std::invalid_argument("Bind failed");
     }
 }
+
+struct arg_struct
+{
+    nodo *n;
+    int s;
+};
+
+void *socketThread(void *arg)
+{
+    char buffer[1024];
+    struct arg_struct *args = (struct arg_struct *)arg;
+
+    int clientSocket = args->s;
+    nodo *n = args->n;
+
+    while (1)
+    {
+        bzero(buffer, sizeof(buffer));
+        recv(clientSocket, buffer, 1024, 0);
+        // r = buffer;
+        if (strcmp(buffer, "0\n") == 0)
+        {
+            printf("Disconnected %s:%d\n", inet_ntoa(n->getAddr().sin_addr), ntohs(n->getAddr().sin_port));
+            break;
+        }
+        else
+        //All the control
+        {
+            cout << "BUFF: " << buffer << endl;
+            send(clientSocket, buffer, strlen(buffer), 0);
+        }
+    }
+    close(clientSocket);
+    pthread_exit(NULL);
+}
+
 int nodo::serverUP(int max_c)
 {
     int newSocket;
     int addrlen = sizeof(addr);
     int i = 0;
+    arg_struct args;
 
-    pid_t childpid;
-    pid_t pid[max_c];
+    pthread_t tid[max_c];
 
     //LISTEN
     if (listen(sock, max_c) < 0)
@@ -97,57 +141,28 @@ int nodo::serverUP(int max_c)
             return -1;
 
         printf("Connection accepted from %s:%d\n", inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
+        args.n = this;
+        args.s = newSocket;
 
-        if ((childpid = fork()) == 0)
+        if (pthread_create(&tid[i++], NULL, socketThread, (void *)&args) != 0)
         {
-            nodo::socketThread(newSocket);
+            printf("Error");
         }
-        else
+
+        if (i >= max_c)
         {
-            //IF all resoruces are consumed wait until child processes end
-            pid[i++] = childpid;
-            if (i >= max_c)
+            i = 0;
+            while (i < max_c)
             {
-                i = 0;
-                while (i < max_c)
-                {
-                    waitpid(pid[i++], NULL, 0);
-                }
-                i = 0;
+                pthread_join(tid[i++], NULL);
             }
-            // waitpid(-1, NULL, WNOHANG); //KILL ZOMBIE PROCESSES
+            i = 0;
         }
+        // waitpid(-1, NULL, WNOHANG); //KILL ZOMBIE PROCESSES
     }
 
     close(newSocket);
     return 0;
-}
-
-void nodo::socketThread(int clientSocket)
-{
-    char buffer[1024];
-
-    // std::string r;
-    close(sock);
-
-    while (1)
-    {
-        bzero(buffer, sizeof(buffer));
-        recv(clientSocket, buffer, 1024, 0);
-        // r = buffer;
-        if (strcmp(buffer, "0\n") == 0)
-        {
-            printf("Disconnected from %s:%d\n", inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
-            close(clientSocket);
-            break;
-        }
-        else
-        {
-            cout << "BUFF: " << buffer << endl;
-            trusted=false;
-            send(clientSocket, buffer, strlen(buffer), 0);
-        }
-    }
 }
 
 int nodo::estConnection()

@@ -26,7 +26,6 @@
 // char buffer2[1024];
 // pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
-
 class nodo
 {
 private:
@@ -45,11 +44,12 @@ public:
     nodo(int ID, const char *ip, int port, CryptoPP::RSA::PublicKey pub, CryptoPP::RSA::PublicKey prv, std::string hash_record);
     int getID();
     void setID(int ID);
+    sockaddr_in getAddr();
     bool imTrusted();
     void createClientSocket();
     void createServerSocket();
     int serverUP(int max_c);
-    void socketThread(int clientSocket);
+    // void *socketThread(void *arg);
     int estConnection();
     int sendString(const char *codigo);
     int recvString(const char *servResponse);

@@ -1,33 +1,47 @@
 #include "main.hpp"
 using namespace std;
 
+struct arg_struct
+{
+    infra *inf;
+};
+
+//Server thread start
+void *serverThread(void *arg)
+{
+    struct arg_struct *args = (struct arg_struct *)arg;
+
+    infra *inf = args->inf;
+    inf->initializeServer();
+    pthread_exit(NULL);
+}
+
 int main(void)
 {
 
+    pthread_t serverTid;
+
     infra *s = s->getInstance();
+
+    arg_struct args;
+    args.inf = s;
 
     cout << s->getID() << endl;
 
-    // s->setID(2);
-
+    //Print adj nodes
     s->printAdjNodes();
 
-    pid_t pid = fork();
-
-    if (pid == 0)
+    if (pthread_create(&serverTid, NULL, serverThread, (void *)&args) != 0)
     {
-        // SERVER INDEPENDENT PID FORK
-        // cout << "Server UP" << endl;
-        s->initializeServer();
+        printf("Error");
     }
-    else
+
     {
         const char *response;
         int option;
 
-        // sleep(20);
-        // s->connectToAdjacent(2); //if success...
-        //CLIENT
+        char *buffer;
+        int dest;
 
         while (1)
         {
@@ -39,18 +53,31 @@ int main(void)
             switch (option)
             {
             case 0:
-                cout << "killing server" << endl;
-                kill(pid, SIGKILL);
-                waitpid(pid, NULL, 0); //KILL SERVER (if no thread running OK) all threads should be individualy killed.
-                break;
-            case 1:
                 cout << "Exiting infra" << endl;
-                kill(pid, SIGKILL);
-                waitpid(pid, NULL, 0);
                 exit(0);
                 break;
-            case 2:
+            case 1:
                 cout << s->imTrusted() << endl;
+                break;
+            case 2:
+                cout << "enter node ID" << endl;
+                cin >> dest;
+                s->connectToAdjacent(dest);
+                break;
+            case 3:
+                cout << "enter node ID" << endl;
+                cin >> dest;
+                s->sendString(dest,"0\n");
+                s->reassembleSocket(dest); //Reassamble the socket for future reconnections
+
+                break;
+            case 4:
+                cout << "enter dest ID" << endl;
+                cin >> dest;
+                cout << "enter msg" << endl;
+                cin >> buffer;
+                s->sendString(dest, buffer);
+                break;
             default:
                 break;
             }

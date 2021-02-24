@@ -40,6 +40,7 @@ public:
     void initializeServer();
     void connectToAdjacents();
     void connectToAdjacent(int ID);
+    void reassembleSocket(int ID);
     void sendString(int ID, const char* msg);
     void recvString(int ID, const char* servResponse);
     // void sendPackage();sendPackage Google buffer, XML

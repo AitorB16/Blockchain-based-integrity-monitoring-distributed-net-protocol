@@ -1,5 +1,8 @@
 #include "nodo.hpp"
 using namespace std;
+
+// nodo *n;
+
 nodo::nodo(){
 
 };
@@ -24,7 +27,10 @@ void nodo::setID(int ID)
 {
     nodo::ID = ID;
 }
-
+bool nodo::imTrusted()
+{
+    return nodo::trusted;
+}
 void nodo::createClientSocket()
 {
     if ((nodo::sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
@@ -73,102 +79,86 @@ void nodo::createServerSocket()
         throw std::invalid_argument("Bind failed");
     }
 }
-void nodo::serverUP(int max_c)
+
+struct arg_struct
+{
+    nodo *n;
+    int s;
+};
+
+void *socketThread(void *arg)
 {
     char buffer[1024];
-    int newSocket, valread;
+    struct arg_struct *args = (struct arg_struct *)arg;
+
+    int clientSocket = args->s;
+    nodo *n = args->n;
+
+    while (1)
+    {
+        bzero(buffer, sizeof(buffer));
+        recv(clientSocket, buffer, 1024, 0);
+        // r = buffer;
+        if (strcmp(buffer, "0\n") == 0)
+        {
+            break;
+        }
+        else
+        //All the control
+        {
+            cout << "BUFF: " << buffer << endl;
+            send(clientSocket, buffer, strlen(buffer), 0);
+        }
+    }
+    close(clientSocket);
+    pthread_exit(NULL);
+}
+
+int nodo::serverUP(int max_c)
+{
+    int newSocket;
     int addrlen = sizeof(addr);
+    int i = 0;
+    arg_struct args;
 
-    pid_t childpid;
+    pthread_t tid[max_c];
 
-    // int pid = -1;
-
-    //HAY QUE FORKEAR + VACIAR BUFFER
+    //LISTEN
     if (listen(sock, max_c) < 0)
-        throw std::invalid_argument("Error listening");
+        return -1;
 
-    // while (1)
-    // {
-    //     if ((new_socket = accept(sock, (struct sockaddr *)&addr,
-    //                              (socklen_t *)&addrlen)) < 0)
-    //     {
-    //         cout << "ERROR" << endl;
-    //     }
-    //     //Fork
+    cout << "Server UP" << endl;
 
-    //     // pthread_t tid[60];
-    //     int i = 0;
-    //     while (1)
-    //     {
-
-    //         // if (pthread_create(&tid[i++], NULL, socketThread(), &new_socket) != 0)
-    //         //     printf("Failed to create thread\n");
-    //         valread = recv(new_socket, &buffer, 1024, 0);
-    //         cout << buffer << endl;
-
-    //         // CLEAN BUFFER
-    //         bzero(buffer, 1024);
-    //     }
-    //     // valread = recv(new_socket, &buffer, 1024, 0);
-    //     // cout << buffer << endl;
-    //     // sleep(5);
-    //     // cout << "OUT" << endl;
-    //     // buffer[1024] = {0};
-    // }
     while (1)
     {
         newSocket = accept(sock, (struct sockaddr *)&addr, (socklen_t *)&addrlen);
         if (newSocket < 0)
-        {
-            exit(1);
-        }
+            return -1;
+
         printf("Connection accepted from %s:%d\n", inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
+        args.n = this;
+        args.s = newSocket;
 
-        if ((childpid = fork()) == 0)
+        if (pthread_create(&tid[i++], NULL, socketThread, (void *)&args) != 0)
         {
-            close(sock);
-
-            while (1)
-            {
-                recv(newSocket, buffer, 1024, 0);
-                if (strcmp(buffer, ":exit") == 0)
-                {
-                    printf("Disconnected from %s:%d\n", inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
-                    break;
-                }
-                else
-                {
-                    printf("Client: %s\n", buffer);
-                    send(newSocket, buffer, strlen(buffer), 0);
-                    bzero(buffer, sizeof(buffer));
-                }
-            }
+            printf("Error");
         }
+
+        if (i >= max_c)
+        {
+            i = 0;
+            while (i < max_c)
+            {
+                pthread_join(tid[i++], NULL);
+            }
+            i = 0;
+        }
+        // waitpid(-1, NULL, WNOHANG); //KILL ZOMBIE PROCESSES
     }
 
     close(newSocket);
+    return 0;
 }
-
-// void *socketThread(void *arg)
-// {
-//     int newSocket = *((int *)arg);
-//     recv(newSocket, client_message, 2000, 0);
-
-//     // Send message to the client socket
-//     // pthread_mutex_lock(&lock);
-//     char *message = (char*) malloc(sizeof(client_message) + 20);
-//     strcpy(message, "Hello Client : ");
-//     strcat(message, client_message);
-//     strcat(message, "\n");
-//     strcpy(buffer, message);
-//     free(message);
-//     // pthread_mutex_unlock(&lock);
-//     sleep(1);
-//     send(newSocket, buffer, 13, 0);
-//     printf("Exit socketThread \n");
-//     close(newSocket);
-//     pthread_exit(NULL);
-// }
 
 int nodo::estConnection()
 {
@@ -188,8 +178,7 @@ int nodo::sendString(const char *codigo)
 int nodo::recvString(const char *servResponse)
 {
     char buffer[1024];
-    // valread = recv(new_socket, &buffer, 1024, 0);
-    // const char *tmp_buff[1024];
+
     if (recv(sock, buffer, 1024, 0) < 0)
     {
         printf("[-]Error in receiving data.\n");
@@ -204,8 +193,6 @@ int nodo::recvString(const char *servResponse)
         }
         else
         {
-            // printf("Server: \t%s\n", buffer);
-            // strcpy(servResponse, tmp_buff);
             cout << buffer << endl;
             bzero(buffer, 1024);
         }
