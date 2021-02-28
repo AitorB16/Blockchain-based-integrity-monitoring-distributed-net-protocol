@@ -15,7 +15,7 @@
             <port>25571</port>
             <pub>./RSA_keys/RSA_pub2.der</pub>
         </node>
-        <node>
+        <!-- <node>
             <id>3</id>
             <ip>127.0.0.1</ip>
             <port>25571</port>
@@ -26,6 +26,6 @@
             <ip>127.0.0.1</ip>
             <port>25570</port>
             <pub>./RSA_keys/RSA_pub4.der</pub>
-        </node>
+        </node> -->
     </network>
 </config>

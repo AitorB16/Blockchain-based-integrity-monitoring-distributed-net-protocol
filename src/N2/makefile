@@ -6,9 +6,9 @@ IDIR = ../src
 # ODIR = ../obj
 # LDIR = ../include
 
-DEPS = main.hpp crypto.hpp infra.hpp nodo.hpp
+DEPS = main.hpp crypto.hpp infra.hpp nodo.hpp utils.hpp
 
-OBJ = main.o crypto.o infra.o nodo.o
+OBJ = main.o crypto.o infra.o nodo.o utils.o
 
 
 CFLAGS=-I .

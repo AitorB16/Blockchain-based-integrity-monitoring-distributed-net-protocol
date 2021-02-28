@@ -97,26 +97,46 @@ void *socketThread(void *arg)
 
     int clientSocket = args->s;
     nodo *n = args->n;
+    vector<string> vectString;
+    int msgCode;
+
+    bool verifyMsg = false;
+    string clientID;
 
     while (1)
     {
         bzero(buffer, sizeof(buffer));
         recv(clientSocket, buffer, 1024, 0);
+
+        vectString = splitBuffer(buffer); //from utils
+        
+        msgCode = atoi(vectString.at(0).c_str()); //MSG CODE
+        clientID = vectString.at(1); //Source ID
+
         // r = buffer;
-        if (strcmp(buffer, "0\n") == 0)
+        switch (msgCode)
         {
-            printf("Disconnected %s:%d\n", inet_ntoa(n->getAddr().sin_addr), ntohs(n->getAddr().sin_port));
+        //Close connection
+        case 0:
+            // printf("Disconnected %s:%d\n", inet_ntoa(n->getAddr().sin_addr), ntohs(n->getAddr().sin_port));
+            cout << "Disconnected" << endl;
+            close(clientSocket);
+            pthread_exit(NULL);
+            break;
+        //Print received message
+        case 1:
+            cout << "From: " << clientID << " - " << vectString.at(2) << endl;
+            // cout << "BUFF: " << buffer << endl;
+            // send(clientSocket, buffer, strlen(buffer), 0);
+            break;
+        case 2:
+            verifyMsg = verify(vectString.at(2), hex2stream(vectString.at(3)), clientID);
+            cout << verifyMsg << endl;
+            break;
+        default:
             break;
         }
-        else
-        //All the control
-        {
-            cout << "BUFF: " << buffer << endl;
-            send(clientSocket, buffer, strlen(buffer), 0);
-        }
     }
-    close(clientSocket);
-    pthread_exit(NULL);
 }
 
 int nodo::serverUP(int max_c)

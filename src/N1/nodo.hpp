@@ -20,6 +20,9 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
+#include "utils.hpp"
+#include "crypto.hpp"
+
 // char client_message[2000];
 // char buffer1[1024];
 

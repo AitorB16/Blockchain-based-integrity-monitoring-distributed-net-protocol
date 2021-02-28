@@ -20,6 +20,9 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
+#include "utils.hpp"
+#include "crypto.hpp"
+
 // char client_message[2000];
 // char buffer1[1024];
 
@@ -44,6 +47,7 @@ public:
     nodo(int ID, const char *ip, int port, CryptoPP::RSA::PublicKey pub, CryptoPP::RSA::PublicKey prv, std::string hash_record);
     int getID();
     void setID(int ID);
+    sockaddr_in getAddr();
     bool imTrusted();
     void createClientSocket();
     void createServerSocket();

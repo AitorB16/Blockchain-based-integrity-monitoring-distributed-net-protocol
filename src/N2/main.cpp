@@ -37,10 +37,10 @@ int main(void)
     }
 
     {
-        const char *response;
+        // const char *response;
         int option;
 
-        char *buffer;
+        std::string buffer, response, msg, signedMsg, hexMsg;
         int dest;
 
         while (1)
@@ -52,31 +52,51 @@ int main(void)
             cin >> option;
             switch (option)
             {
+            //Close infraestructure
             case 0:
                 cout << "Exiting infra" << endl;
                 exit(0);
                 break;
+            //Is infra trusted
             case 1:
                 cout << s->imTrusted() << endl;
                 break;
+            //Connect to ID node
             case 2:
                 cout << "enter node ID" << endl;
                 cin >> dest;
                 s->connectToAdjacent(dest);
+                // s->connectToAdjacents();
                 break;
+            //Disconnect from ID + reassamble socket
             case 3:
+                buffer = "0;" + to_string(s->getID()) + ";";
                 cout << "enter node ID" << endl;
                 cin >> dest;
-                s->sendString(dest,"0\n");
+                s->sendString(dest, buffer.c_str());
                 s->reassembleSocket(dest); //Reassamble the socket for future reconnections
-
                 break;
+            //Send string to ID node
             case 4:
                 cout << "enter dest ID" << endl;
                 cin >> dest;
                 cout << "enter msg" << endl;
                 cin >> buffer;
-                s->sendString(dest, buffer);
+                buffer = "1;" + to_string(s->getID()) + ";" + buffer + ";";
+                s->sendString(dest, buffer.c_str());
+                break;
+            //BCAST request to send + timeout + count
+            case 5:
+                //Elaborate datagram
+                msg = std::to_string(s->getID());
+                //Sign request
+                signedMsg = sign(msg, std::to_string(s->getID()));
+                hexMsg = stream2hex(signedMsg);
+                buffer = "2;" + to_string(s->getID()) + ";" + msg + ";" + hexMsg + ";";
+                //Send request
+                s->sendStringToAll(buffer.c_str());
+
+                //Wait 2/3 of network to send OK
                 break;
             default:
                 break;
@@ -87,8 +107,6 @@ int main(void)
             // waitpid(-1, NULL, WNOHANG); //KILL ZOMBIE PROCESSES
         }
     }
-
-    // s->connectToAdjacents();
 
     return 0;
 }

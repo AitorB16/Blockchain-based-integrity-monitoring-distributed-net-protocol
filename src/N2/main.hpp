@@ -9,6 +9,9 @@
 #include <unistd.h> 
 #include <signal.h>
 
+#include <bitset>
+
 // #include "crypto.hpp"
 #include "infra.hpp"
+#include "crypto.hpp"
 int main();

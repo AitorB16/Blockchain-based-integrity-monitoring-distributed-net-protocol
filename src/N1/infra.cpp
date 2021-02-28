@@ -157,6 +157,21 @@ void infra::reassembleSocket(int ID)
     }
 }
 
+void infra::reassembleAllSocket()
+{
+    try
+    {
+        for (auto const &i : adj_nodes)
+        {
+
+            i->createClientSocket();
+        }
+    }
+    catch (const std::exception &e)
+    {
+        std::cerr << e.what() << '\n';
+    }
+}
 void infra::sendString(int ID, const char *msg)
 {
     try
@@ -170,6 +185,25 @@ void infra::sendString(int ID, const char *msg)
                 else
                     cout << "Success sending: " << ID << endl;
             }
+        }
+    }
+    catch (const std::exception &e)
+    {
+        std::cerr << e.what() << '\n';
+    }
+}
+
+void infra::sendStringToAll(const char *msg)
+{
+    try
+    {
+        for (auto const &i : adj_nodes)
+        {
+
+            if (i->sendString(msg) == -1)
+                cout << "Error sending: " << i->getID() << endl;
+            else
+                cout << "Success sending: " << i->getID() << endl;
         }
     }
     catch (const std::exception &e)

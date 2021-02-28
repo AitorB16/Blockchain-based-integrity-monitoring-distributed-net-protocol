@@ -25,7 +25,7 @@ class infra
 private:
     int adj_node_num;
     nodo *self;
-    std::list<nodo*> adj_nodes;
+    std::list<nodo *> adj_nodes;
 
     static infra *instance;
     infra();
@@ -41,8 +41,10 @@ public:
     void connectToAdjacents();
     void connectToAdjacent(int ID);
     void reassembleSocket(int ID);
-    void sendString(int ID, const char* msg);
-    void recvString(int ID, const char* servResponse);
+    void reassembleAllSocket();
+    void sendString(int ID, const char *msg);
+    void sendStringToAll(const char *msg);
+    void recvString(int ID, const char *servResponse);
     // void sendPackage();sendPackage Google buffer, XML
 };
 
