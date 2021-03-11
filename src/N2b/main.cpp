@@ -28,8 +28,8 @@ int main(void)
 
     cout << s->getID() << endl;
 
-    //Print other nodes
-    s->printOtherNodes();
+    //Print adj nodes
+    s->printAdjNodes();
 
     if (pthread_create(&serverTid, NULL, serverThread, (void *)&args) != 0)
     {
@@ -65,7 +65,7 @@ int main(void)
             case 2:
                 cout << "enter node ID" << endl;
                 cin >> dest;
-                s->connectToNode(dest);
+                s->connectToAdjacent(dest);
                 // s->connectToAdjacents();
                 break;
             //Disconnect from ID + reassamble socket
@@ -87,29 +87,19 @@ int main(void)
                 break;
             //BCAST request to send + timeout + count
             case 5:
-                //Connect to ALL
-                s->connectToAllNodes();
-
-                //Elaborate random datagram
+                //Elaborate datagram
                 msg = gen_random(randomStrLen);
 
                 //Sign request
                 signedMsg = sign(msg, std::to_string(s->getID()));
                 hexMsg = stream2hex(signedMsg);
                 buffer = "2;" + to_string(s->getID()) + ";" + msg + ";" + hexMsg + ";";
-
-                //Send request to ALL
+                //Send request
                 s->sendStringToAll(buffer.c_str());
 
-                //Wait 2/3 of network to send OK Select
+                cout << msg << endl;
 
-                //Send hash
-
-                //Close connection
-
-                // buffer = "0;NULL;";
-                // s->sendStringToAll(buffer.c_str());
-                s->reassembleAllSockets();
+                //Wait 2/3 of network to send OK
                 break;
             default:
                 break;

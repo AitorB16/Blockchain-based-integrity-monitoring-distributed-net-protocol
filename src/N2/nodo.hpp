@@ -38,17 +38,23 @@ private:
     struct sockaddr_in addr;
     int port;
     bool trusted;
+    bool changeFlag;
     CryptoPP::RSA::PublicKey pub;
     CryptoPP::RSA::PublicKey prv;
-    std::list<std::string> hash_record;
+    std::list<std::string> receivedMsgs;
+    std::string currentHash;
 
 public:
     nodo();
-    nodo(int ID, const char *ip, int port, CryptoPP::RSA::PublicKey pub, CryptoPP::RSA::PublicKey prv, std::string hash_record);
+    nodo(int ID, const char *ip, int port, CryptoPP::RSA::PublicKey pub, CryptoPP::RSA::PublicKey prv);
     int getID();
     void setID(int ID);
+    bool getChangeFlag();
+    void setChangeFlag(bool flagValue);
     sockaddr_in getAddr();
-    bool imTrusted();
+    void insertInReceiveMsgs(string s);
+    bool isTrusted();
+    bool isMsgRepeated(string s);
     void createClientSocket();
     void createServerSocket();
     int serverUP(int max_c);
@@ -56,6 +62,7 @@ public:
     int estConnection();
     int sendString(const char *codigo);
     int recvString(const char *servResponse);
+
 };
 
 #endif

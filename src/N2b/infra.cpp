@@ -36,7 +36,7 @@ infra::infra()
         //ADJACENT NODES
         nodo *tmp_node;
         // adj_node_num = atoi(network_node->first_node("adj_node_num")->value());
-        otherNodeNumber = 0;
+        adj_node_num = 0;
 
         for (xml_node<> *adj = network_node->first_node("node"); adj; adj = adj->next_sibling())
         {
@@ -49,10 +49,9 @@ infra::infra()
             tmp_node = new nodo(ID, ip, port, pub, prv);
             tmp_node->createClientSocket();
             // tmp_node->estConnection();
-            otherNodes.push_back(tmp_node);
-            otherNodeNumber++;
+            adj_nodes.push_back(tmp_node);
+            adj_node_num++;
         }
-        trustedNodeNumber = otherNodeNumber;
     }
     catch (const std::exception &e)
     {
@@ -77,19 +76,14 @@ void infra::setID(int ID)
     self->setID(ID);
 }
 
-int infra::getTrustedNodeNumber()
-{
-    return trustedNodeNumber;
-}
-
 bool infra::imTrusted()
 {
-    return self->isTrusted();
+    return self->imTrusted();
 }
 
-void infra::printOtherNodes()
+void infra::printAdjNodes()
 {
-    for (auto const &i : otherNodes)
+    for (auto const &i : adj_nodes)
     {
         std::cout << "Adj node ID: " << i->getID() << endl;
     }
@@ -99,7 +93,7 @@ void infra::initializeServer()
 {
     try
     {
-        self->serverUP(otherNodeNumber);
+        self->serverUP(adj_node_num);
     }
     catch (const std::exception &e)
     {
@@ -107,18 +101,36 @@ void infra::initializeServer()
     }
 }
 
-void infra::connectToAllNodes()
+void infra::connectToAdjacents()
 {
     try
     {
-        for (auto const &i : otherNodes)
+        for (auto const &i : adj_nodes)
         {
-            if (i->isTrusted())
+            if (i->estConnection() == -1)
+                cout << "Error connection: " << i->getID() << endl;
+            else
+                cout << "Success connection: " << i->getID() << endl;
+        }
+    }
+    catch (const std::exception &e)
+    {
+        std::cerr << e.what() << '\n';
+    }
+}
+
+void infra::connectToAdjacent(int ID)
+{
+    try
+    {
+        for (auto const &i : adj_nodes)
+        {
+            if (i->getID() == ID)
             {
                 if (i->estConnection() == -1)
                     cout << "Error connection: " << i->getID() << endl;
                 else
-                    cout << "Success connection: " << i->getID() << endl;
+                    cout << "Success connection: " << ID << endl;
             }
         }
     }
@@ -127,40 +139,17 @@ void infra::connectToAllNodes()
         std::cerr << e.what() << '\n';
     }
 }
-
-void infra::connectToNode(int ID)
-{
-    try
-    {
-        for (auto const &i : otherNodes)
-        {
-            if (i->getID() == ID)
-            {
-                if (i->isTrusted())
-                {
-                    if (i->estConnection() == -1)
-                        cout << "Error connection: " << i->getID() << endl;
-                    else
-                        cout << "Success connection: " << ID << endl;
-                }
-            }
-        }
-    }
-    catch (const std::exception &e)
-    {
-        std::cerr << e.what() << '\n';
-    }
-}
-
-//If we are at this point, node is trusted
 void infra::reassembleSocket(int ID)
 {
     try
     {
-        for (auto const &i : otherNodes)
+        for (auto const &i : adj_nodes)
+        {
             if (i->getID() == ID)
-                if (i->isTrusted())
-                    i->createClientSocket();
+            {
+                i->createClientSocket();
+            }
+        }
     }
     catch (const std::exception &e)
     {
@@ -168,16 +157,14 @@ void infra::reassembleSocket(int ID)
     }
 }
 
-void infra::reassembleAllSockets()
+void infra::reassembleAllSocket()
 {
     try
     {
-        for (auto const &i : otherNodes)
+        for (auto const &i : adj_nodes)
         {
-            if (i->isTrusted())
-            {
-                i->createClientSocket();
-            }
+
+            i->createClientSocket();
         }
     }
     catch (const std::exception &e)
@@ -189,7 +176,7 @@ void infra::sendString(int ID, const char *msg)
 {
     try
     {
-        for (auto const &i : otherNodes)
+        for (auto const &i : adj_nodes)
         {
             if (i->getID() == ID)
             {
@@ -210,16 +197,13 @@ void infra::sendStringToAll(const char *msg)
 {
     try
     {
-        for (auto const &i : otherNodes)
+        for (auto const &i : adj_nodes)
         {
-            if (i->isTrusted())
-            {
 
-                if (i->sendString(msg) == -1)
-                    cout << "Error sending: " << i->getID() << endl;
-                else
-                    cout << "Success sending: " << i->getID() << endl;
-            }
+            if (i->sendString(msg) == -1)
+                cout << "Error sending: " << i->getID() << endl;
+            else
+                cout << "Success sending: " << i->getID() << endl;
         }
     }
     catch (const std::exception &e)
@@ -232,7 +216,7 @@ void infra::recvString(int ID, const char *servResponse)
 {
     try
     {
-        for (auto const &i : otherNodes)
+        for (auto const &i : adj_nodes)
         {
             if (i->getID() == ID)
             {

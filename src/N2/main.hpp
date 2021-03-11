@@ -14,4 +14,7 @@
 // #include "crypto.hpp"
 #include "infra.hpp"
 #include "crypto.hpp"
+
+#define randomStrLen 128
+
 int main();

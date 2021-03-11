@@ -38,7 +38,6 @@ private:
     struct sockaddr_in addr;
     int port;
     bool trusted;
-    bool changeFlag;
     CryptoPP::RSA::PublicKey pub;
     CryptoPP::RSA::PublicKey prv;
     std::list<std::string> receivedMsgs;
@@ -49,11 +48,9 @@ public:
     nodo(int ID, const char *ip, int port, CryptoPP::RSA::PublicKey pub, CryptoPP::RSA::PublicKey prv);
     int getID();
     void setID(int ID);
-    bool getChangeFlag();
-    void setChangeFlag(bool flagValue);
     sockaddr_in getAddr();
     void insertInReceiveMsgs(string s);
-    bool isTrusted();
+    bool imTrusted();
     bool isMsgRepeated(string s);
     void createClientSocket();
     void createServerSocket();

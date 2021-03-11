@@ -23,10 +23,9 @@ class infra
 {
 
 private:
-    int otherNodeNumber;
-    int trustedNodeNumber;
+    int adj_node_num;
     nodo *self;
-    std::list<nodo *> otherNodes;
+    std::list<nodo *> adj_nodes;
 
     static infra *instance;
     infra();
@@ -35,15 +34,14 @@ public:
     static infra *getInstance();
     int getID();
     void setID(int ID);
-    int getTrustedNodeNumber();
     bool imTrusted();
     // bool isTrsuted(int ID);
-    void printOtherNodes();
+    void printAdjNodes();
     void initializeServer();
-    void connectToAllNodes();
-    void connectToNode(int ID);
+    void connectToAdjacents();
+    void connectToAdjacent(int ID);
     void reassembleSocket(int ID);
-    void reassembleAllSockets();
+    void reassembleAllSocket();
     void sendString(int ID, const char *msg);
     void sendStringToAll(const char *msg);
     void recvString(int ID, const char *servResponse);

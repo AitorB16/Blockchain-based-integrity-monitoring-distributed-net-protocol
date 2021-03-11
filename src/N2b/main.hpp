@@ -16,5 +16,4 @@
 #include "crypto.hpp"
 
 #define randomStrLen 128
-
 int main();
