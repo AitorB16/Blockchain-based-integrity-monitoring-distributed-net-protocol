@@ -1,18 +1,22 @@
 #include "main.hpp"
 using namespace std;
 
-struct arg_struct
+struct argNetwork
 {
-    infra *inf;
+    network *net;
 };
 
 //Server thread start
 void *serverThread(void *arg)
 {
-    struct arg_struct *args = (struct arg_struct *)arg;
+    struct argNetwork *args = (struct argNetwork *)arg;
 
-    infra *inf = args->inf;
-    inf->initializeServer();
+    network *net = args->net;
+
+    server *s;
+    s = new server(net);
+    s->serverUP(net->getNodeNumber());
+
     pthread_exit(NULL);
 }
 
@@ -21,15 +25,17 @@ int main(void)
 
     pthread_t serverTid;
 
-    infra *s = s->getInstance();
+    network *net = net->getInstance();
 
-    arg_struct args;
-    args.inf = s;
+    argNetwork args;
+    args.net = net;
 
-    cout << s->getID() << endl;
+    int numRes;
+
+    cout << net->getID() << endl;
 
     //Print other nodes
-    s->printOtherNodes();
+    net->printOtherNodes();
 
     if (pthread_create(&serverTid, NULL, serverThread, (void *)&args) != 0)
     {
@@ -40,7 +46,7 @@ int main(void)
         // const char *response;
         int option;
 
-        std::string buffer, response, msg, signedMsg, hexMsg;
+        std::string buffer, response;
         int dest;
 
         while (1)
@@ -59,64 +65,65 @@ int main(void)
                 break;
             //Is infra trusted
             case 1:
-                cout << s->imTrusted() << endl;
+                cout << net->imTrusted() << endl;
                 break;
             //Connect to ID node
             case 2:
                 cout << "enter node ID" << endl;
                 cin >> dest;
-                s->connectToNode(dest);
-                // s->connectToAdjacents();
+                net->connectToNode(dest);
+                // net->connectToAdjacents();
                 break;
             //Disconnect from ID + reassamble socket
             case 3:
-                buffer = "0;" + to_string(s->getID()) + ";";
                 cout << "enter node ID" << endl;
                 cin >> dest;
-                s->sendString(dest, buffer.c_str());
-                s->reassembleSocket(dest); //Reassamble the socket for future reconnections
+                net->sendString(0, dest, net->getID());
+                net->reassembleSocket(dest); //Reassamble the socket for future reconnections
                 break;
             //Send string to ID node
             case 4:
-                cout << "enter dest ID" << endl;
+                cout << "enter node ID" << endl;
                 cin >> dest;
-                cout << "enter msg" << endl;
-                cin >> buffer;
-                buffer = "1;" + to_string(s->getID()) + ";" + buffer + ";";
-                s->sendString(dest, buffer.c_str());
+                buffer = "AAAAAAAAAAAAAAA";
+                net->sendString(1, dest, net->getID(), buffer);
                 break;
             //BCAST request to send + timeout + count
             case 5:
                 //Connect to ALL
-                s->connectToAllNodes();
-
-                //Elaborate random datagram
-                msg = gen_random(randomStrLen);
-
-                //Sign request
-                signedMsg = sign(msg, std::to_string(s->getID()));
-                hexMsg = stream2hex(signedMsg);
-                buffer = "2;" + to_string(s->getID()) + ";" + msg + ";" + hexMsg + ";";
+                net->connectToAllNodes();
 
                 //Send request to ALL
-                s->sendStringToAll(buffer.c_str());
+                // maxFD = net->sendStringToAll(buffer.c_str());
+                net->sendStringToAll(2, net->getID());
 
-                //Wait 2/3 of network to send OK Select
+                //Wait 2/3 of network to send OK Select; timeout 30sec
+                numRes = net->waitResponses(net->getTrustedNodeNumber() * THRESHOLD);
 
-                //Send hash
+                if (numRes >= net->getTrustedNodeNumber() * THRESHOLD)
+                {
+                    //Send hash
+                    net->sendStringToAll(3, net->getID(), "HASH");
+                }
+
+                cout << numRes << endl;
 
                 //Close connection
-
-                // buffer = "0;NULL;";
-                // s->sendStringToAll(buffer.c_str());
-                s->reassembleAllSockets();
+                net->reassembleAllSockets();
+                break;
+            case 6:
+                bool flagValue;
+                cout << "enter node ID" << endl;
+                cin >> dest;
+                net->getNode(dest)->getChangeFlag(&flagValue);
+                cout << flagValue;
                 break;
             default:
                 break;
             }
 
-            // s->sendString(2, ":exit");
-            // s->recvString(2, response); //Hay que solucionar response
+            // net->sendString(2, ":exit");
+            // net->recvString(2, response); //Hay que solucionar response
             // waitpid(-1, NULL, WNOHANG); //KILL ZOMBIE PROCESSES
         }
     }

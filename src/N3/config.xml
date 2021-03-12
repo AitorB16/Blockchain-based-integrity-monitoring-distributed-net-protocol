@@ -1,31 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <config>
     <node_self>
-        <id>1</id>
+        <id>3</id>
         <ip>127.0.0.1</ip>
-        <port>25570</port>
-        <pub>./RSA_keys/RSA_pub1.der</pub>
-        <prv>./RSA_keys/RSA_prv1.der</prv>
+        <port>25572</port>
+        <pub>./RSA_keys/RSA_pub3.der</pub>
+        <prv>./RSA_keys/RSA_prv3.der</prv>
     </node_self>
     <network>
         <adj_node_num>1</adj_node_num>
         <node>
-            <id>2</id>
+            <id>1</id>
             <ip>127.0.0.1</ip>
-            <port>25571</port>
-            <pub>./RSA_keys/RSA_pub2.der</pub>
+            <port>25570</port>
+            <pub>./RSA_keys/RSA_pub1.der</pub>
         </node>
-        <node>
+        <!-- <node>
             <id>3</id>
             <ip>127.0.0.1</ip>
-            <port>25572</port>
+            <port>25571</port>
             <pub>./RSA_keys/RSA_pub3.der</pub>
         </node>
         <node>
             <id>4</id>
             <ip>127.0.0.1</ip>
-            <port>25573</port>
+            <port>25570</port>
             <pub>./RSA_keys/RSA_pub4.der</pub>
-        </node>
+        </node> -->
     </network>
 </config>

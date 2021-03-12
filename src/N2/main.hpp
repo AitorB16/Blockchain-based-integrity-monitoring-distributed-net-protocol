@@ -12,9 +12,10 @@
 #include <bitset>
 
 // #include "crypto.hpp"
-#include "infra.hpp"
+#include "network.hpp"
+#include "server.hpp"
 #include "crypto.hpp"
 
-#define randomStrLen 128
+#define THRESHOLD 2/3
 
 int main();
