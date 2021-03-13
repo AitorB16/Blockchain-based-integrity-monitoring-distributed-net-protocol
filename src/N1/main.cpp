@@ -49,6 +49,9 @@ int main(void)
         std::string buffer, response;
         int dest;
 
+        string IDNodeHash;
+        bool flagValue;
+
         while (1)
         {
 
@@ -67,64 +70,52 @@ int main(void)
             case 1:
                 cout << net->imTrusted() << endl;
                 break;
-            //Connect to ID node
-            case 2:
-                cout << "enter node ID" << endl;
-                cin >> dest;
-                net->connectToNode(dest);
-                // net->connectToAdjacents();
-                break;
-            //Disconnect from ID + reassamble socket
-            case 3:
-                cout << "enter node ID" << endl;
-                cin >> dest;
-                net->sendString(0, dest, net->getID());
-                net->reassembleSocket(dest); //Reassamble the socket for future reconnections
-                break;
-            //Send string to ID node
-            case 4:
-                cout << "enter node ID" << endl;
-                cin >> dest;
-                buffer = "AAAAAAAAAAAAAAA";
-                net->sendString(1, dest, net->getID(), buffer);
-                break;
             //BCAST request to send + timeout + count
-            case 5:
+            case 2:
                 //Connect to ALL
                 net->connectToAllNodes();
 
                 //Send request to ALL
-                // maxFD = net->sendStringToAll(buffer.c_str());
-                net->sendStringToAll(2, net->getID());
+
+                //Enviar solo a los nodos conectados //Code 0 REQUEST
+                net->sendStringToAll(0, net->getID());
 
                 //Wait 2/3 of network to send OK Select; timeout 30sec
                 numRes = net->waitResponses(net->getTrustedNodeNumber() * THRESHOLD);
 
+                cout << "NUM RES: " << numRes << endl;
+
                 if (numRes >= net->getTrustedNodeNumber() * THRESHOLD)
                 {
                     //Send hash
-                    net->sendStringToAll(3, net->getID(), "HASH");
+                    net->sendStringToAll(1, net->getID(), "HASH");
+
+                    cout << "hash sent" << endl;
                 }
-
-                cout << numRes << endl;
-
+                //Network is comprometed
+                else
+                {
+                    cout << "Network is comprometed" << endl;
+                    exit(0);
+                }
                 //Close connection
                 net->reassembleAllSockets();
                 break;
-            case 6:
-                bool flagValue;
+            case 3:
                 cout << "enter node ID" << endl;
                 cin >> dest;
-                net->getNode(dest)->getChangeFlag(&flagValue);
-                cout << flagValue;
+                flagValue = net->getNode(dest)->getChangeFlag();
+                cout << flagValue << endl;
+                break;
+            case 4:
+                cout << "enter node ID" << endl;
+                cin >> dest;
+                IDNodeHash = net->getNode(dest)->getCurrentHash();
+                cout << IDNodeHash << endl;
                 break;
             default:
                 break;
             }
-
-            // net->sendString(2, ":exit");
-            // net->recvString(2, response); //Hay que solucionar response
-            // waitpid(-1, NULL, WNOHANG); //KILL ZOMBIE PROCESSES
         }
     }
 

@@ -142,22 +142,22 @@ void network::insertInReceivedMsgs(string s)
     pthread_mutex_unlock(&lockMsgList);
 }
 
-void network::isMsgRepeated(string s, bool *isRepeated)
+bool network::isMsgRepeated(string s)
 {
-    bool tmp;
+    bool isRepeated;
     pthread_mutex_lock(&lockMsgList);
     for (auto const &i : receivedMsgs)
     {
         if (i == s)
         {
-            tmp = true;
+            isRepeated = true;
             break;
         }
         else
-            tmp = false;
+            isRepeated = false;
     }
-    *isRepeated = tmp;
     pthread_mutex_unlock(&lockMsgList);
+    return isRepeated;
 }
 
 void network::printOtherNodes()
@@ -260,6 +260,9 @@ void network::sendString(int code, int destID, int sourceID, string content)
 {
     std::string buffer, msg, signedMsg, hexMsg;
 
+    //At least 1 sec is needed to generate another random string (cahotic system)
+    sleep(1);
+
     //Put msg code and source
     buffer = to_string(code) + ";" + to_string(sourceID) + ";";
 
@@ -295,6 +298,9 @@ void network::sendStringToAll(int code, int sourceID, string content)
 {
     std::string buffer, msg, signedMsg, hexMsg;
 
+    //At least 1 sec is needed to generate another random string (cahotic system)
+    sleep(1);
+
     try
     {
         for (auto const &i : otherNodes)
@@ -304,7 +310,7 @@ void network::sendStringToAll(int code, int sourceID, string content)
                 //Put msg code and source
                 buffer = to_string(code) + ";" + to_string(sourceID) + ";";
 
-                //Elaborate random datagram
+                //Elaborate random datagram SOMETIMES IT TAKES DELAY
                 msg = gen_random(RANDOM_STR_LEN);
 
                 //Se especifica destino + firma para que otro nodo no use mismo mensaje
@@ -322,6 +328,7 @@ void network::sendStringToAll(int code, int sourceID, string content)
     }
     catch (const std::exception &e)
     {
+        cout << "AAA" << endl;
         std::cerr << e.what() << '\n';
     }
 }
@@ -329,47 +336,47 @@ int network::waitResponses(int resNum)
 {
     struct timeval tv;
     tv.tv_sec = DEFAULT_SELECT_WAIT;
+    tv.tv_usec = 0;
+
     int selectStatus;
-    int j = 0;
+    int counter = 0;
     fd_set tmpFdSet;
 
-    //tmp vars for reseting values
-    FD_ZERO(&tmpFdSet); //clear the socket set
-    int tmpMaxFD = -1;  //initialize maxFD
-
-    do
+    while (1)
     {
         //just monitorize trusted sockets; low-eq maxFD descriptor
         selectStatus = select(maxFD + 1, &readfds, NULL, NULL, &tv);
+        //
+        counter += selectStatus;
 
-        //if timeout break loop
-        if (selectStatus == 0)
+        //if timeout or received message number is gr eq to resNum -> break the loop
+        if (selectStatus == 0 || counter >= resNum)
             break;
-
-        //Count all received connections
-        for (auto const &i : otherNodes)
+        else
         {
-            if (i->isTrusted())
+            //tmp vars for reseting values
+            FD_ZERO(&tmpFdSet); //clear the socket set
+            int tmpMaxFD = -1;  //initialize tmpMaxFD
+
+            //Count all received connections
+            for (auto const &i : otherNodes)
             {
-                if (FD_ISSET(i->getSock(), &readfds))
+                if (i->isConnected())
                 {
-                    j++;
-                }
-                else
-                {
-                    if (i->getSock() > tmpMaxFD)
-                        tmpMaxFD = i->getSock();
-                    FD_SET(i->getSock(), &tmpFdSet);
+                    if (!FD_ISSET(i->getSock(), &readfds))
+                    {
+                        if (i->getSock() > tmpMaxFD)
+                            tmpMaxFD = i->getSock();
+                        FD_SET(i->getSock(), &tmpFdSet);
+                    }
                 }
             }
+            //Reset values for select
+            readfds = tmpFdSet;
+            maxFD = tmpMaxFD;
         }
-        // FD_ZERO(&readfds);
-        //Reset values for select
-        readfds = tmpFdSet;
-        maxFD = tmpMaxFD;
-
-    } while (j < resNum);
-    return j;
+    }
+    return counter;
 }
 
 void network::recvString(int ID, const char *servResponse)

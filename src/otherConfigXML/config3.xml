@@ -16,15 +16,15 @@
             <pub>./RSA_keys/RSA_pub1.der</pub>
         </node>
         <!-- <node>
-            <id>3</id>
+            <id>2</id>
             <ip>127.0.0.1</ip>
             <port>25571</port>
-            <pub>./RSA_keys/RSA_pub3.der</pub>
+            <pub>./RSA_keys/RSA_pub2.der</pub>
         </node>
         <node>
             <id>4</id>
             <ip>127.0.0.1</ip>
-            <port>25570</port>
+            <port>25573</port>
             <pub>./RSA_keys/RSA_pub4.der</pub>
         </node> -->
     </network>

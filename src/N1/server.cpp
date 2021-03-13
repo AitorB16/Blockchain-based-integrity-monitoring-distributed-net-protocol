@@ -73,31 +73,14 @@ void *socketThread(void *arg)
         argSimpleNode.sN = sN;
         argSimpleNode.s = clientSocket;
 
+        //Verify is im destination
         if (atoi(selfID.c_str()) == net->getID())
         {
-
             switch (msgCode)
             {
-            //Close connection
-            case 0:
-                // printf("Disconnected %s:%d\n", inet_ntoa(n->getAddr().sin_addr), ntohs(n->getAddr().sin_port));
-                cout << "Disconnected" << endl;
-                close(clientSocket);
-                pthread_exit(NULL);
-                break;
-            //Print received message
-            case 1:
-                cout << "From: " << clientID << " - " << content << endl;
-                // cout << "BUFF: " << buffer << endl;
-                // send(clientSocket, buffer, strlen(buffer), 0);
-                break;
-
             //Modify current hash request
-            case 2:
-                bool isRepeated;
-                net->isMsgRepeated(randMsg, &isRepeated);
-                ;
-                if (!isRepeated)
+            case 0:
+                if (!net->isMsgRepeated(randMsg))
                 {
                     if (verify(randMsg, hex2stream(randHexSignedMsg), clientID))
                     {
@@ -114,20 +97,37 @@ void *socketThread(void *arg)
                         }
                         //pthread_join(tid, NULL);
 
-                        //PROBLEMAS CON LA FIRMA por ahora sin firmar
-                        //Enviar mensaje de vuelta
-                        // net->sendString(2, atoi(clientID.c_str()), atoi(selfID.c_str()));
+                        //Enviar mensaje aleatorio de vuelta
+                        sendBuffer[0] = 'A';
                         send(clientSocket, sendBuffer, strlen(sendBuffer), 0);
+                        cout << "SENT" << endl;
                     }
                 }
-
-                cout << "Disconnected" << endl;
-                close(clientSocket);
-                pthread_exit(NULL);
+                //Dont close connection, we spect to receive the new hash from same node
                 break;
 
             //Update hash of simpleNode
-            case 3:
+            case 1:
+                cout << "received" << endl;
+                if (!net->isMsgRepeated(randMsg))
+                {
+                    if (verify(randMsg, hex2stream(randHexSignedMsg), clientID))
+                    {
+                        net->insertInReceivedMsgs(randMsg);
+                        if (sN->getChangeFlag())
+                        {
+                            //Update hash of network node
+                            sN->setCurrentHash(content);
+
+                            //Desactivar flag usando cerraduras
+                            sN->setChangeFlag(false);
+                        }
+                    }
+                }
+                //Close connection
+                cout << "Disconnected" << endl;
+                close(clientSocket);
+                pthread_exit(NULL);
                 break;
             default:
                 break;
@@ -135,8 +135,8 @@ void *socketThread(void *arg)
         }
         else
         {
-
-            cout << "Disconnected fake" << endl;
+            //Attempt of message falsification
+            cout << "Disconnected message was faked" << endl;
             close(clientSocket);
             pthread_exit(NULL);
         }

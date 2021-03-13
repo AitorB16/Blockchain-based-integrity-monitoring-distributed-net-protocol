@@ -33,6 +33,7 @@ protected:
     int port;
     bool trusted;
     bool changeFlag;
+    bool connected;
     CryptoPP::RSA::PublicKey pub;
     std::string currentHash;
 
@@ -41,11 +42,14 @@ public:
     simpleNode(int ID, const char *ip, int port, CryptoPP::RSA::PublicKey pub);
     int getID();
     void setID(int ID);
-    void getChangeFlag(bool *flagValue);
+    bool getChangeFlag();
     void setChangeFlag(bool flagValue);
     int getSock();
     sockaddr_in getAddr();
+    string getCurrentHash();
+    void setCurrentHash(string hash);
     bool isTrusted();
+    bool isConnected();
     void createClientSocket();
     int estConnection();
     int sendString(const char *codigo);

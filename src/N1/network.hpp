@@ -15,12 +15,17 @@
 #include <fstream>
 #include <vector>
 
+#include <sys/time.h>
+#include <sys/types.h>
+#include <unistd.h>
+
 #include "../../include/rapidxml-1.13/rapidxml.hpp"
 #include "../../include/rapidxml-1.13/rapidxml_utils.hpp"
 
 #include "crypto.hpp"
 #include "simpleNode.hpp"
 #include "selfNode.hpp"
+
 
 #define RANDOM_STR_LEN 128
 #define DEFAULT_SELECT_WAIT 30
@@ -59,7 +64,7 @@ public:
     int getMaxFD();
     fd_set getSetOfSockets();
     void insertInReceivedMsgs(string s);
-    void isMsgRepeated(string s, bool *isRepeated);
+    bool isMsgRepeated(string s);
     void printOtherNodes();
     // void initializeServer();
     void connectToAllNodes();

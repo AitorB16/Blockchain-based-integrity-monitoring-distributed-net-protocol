@@ -1,1 +1,5 @@
 *.o
+src/N1/run
+src/N2
+src/N3
+src/N4

@@ -2,6 +2,7 @@
 using namespace std;
 
 pthread_mutex_t lockChangeFlag = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t lockConnected = PTHREAD_MUTEX_INITIALIZER;
 
 simpleNode::simpleNode(){
 
@@ -14,6 +15,7 @@ simpleNode::simpleNode(int ID, const char *ip, int port, CryptoPP::RSA::PublicKe
     simpleNode::port = port;
     simpleNode::trusted = true;
     simpleNode::changeFlag = false;
+    simpleNode::connected = false;
     simpleNode::pub = pub;
     // simpleNode::hash_record.push_back(hash_record);
 }
@@ -27,17 +29,22 @@ void simpleNode::setID(int ID)
 {
     simpleNode::ID = ID;
 }
-void simpleNode::getChangeFlag(bool *flagValue){
+bool simpleNode::getChangeFlag()
+{
+    bool tmpChangeFlag;
     pthread_mutex_lock(&lockChangeFlag);
-    *flagValue = simpleNode::changeFlag;
+    tmpChangeFlag = simpleNode::changeFlag;
+    pthread_mutex_unlock(&lockChangeFlag);
+    return tmpChangeFlag;
+}
+void simpleNode::setChangeFlag(bool flagValue)
+{
+    pthread_mutex_lock(&lockChangeFlag);
+    simpleNode::changeFlag = flagValue;
     pthread_mutex_unlock(&lockChangeFlag);
 }
-void simpleNode::setChangeFlag(bool flagValue){
-    pthread_mutex_lock(&lockChangeFlag);
-    simpleNode::changeFlag= flagValue;
-    pthread_mutex_unlock(&lockChangeFlag);
-}
-int simpleNode::getSock(){
+int simpleNode::getSock()
+{
     return simpleNode::sock;
 }
 
@@ -45,10 +52,27 @@ sockaddr_in simpleNode::getAddr()
 {
     return simpleNode::addr;
 }
+string simpleNode::getCurrentHash()
+{
+    return currentHash;
+}
+void simpleNode::setCurrentHash(string hash)
+{
+    currentHash = hash;
+}
 
 bool simpleNode::isTrusted()
 {
     return simpleNode::trusted;
+}
+
+bool simpleNode::isConnected()
+{
+    bool tmpConnected = false;
+    pthread_mutex_lock(&lockConnected);
+    tmpConnected = connected;
+    pthread_mutex_unlock(&lockConnected);
+    return tmpConnected;
 }
 
 void simpleNode::createClientSocket()
@@ -60,14 +84,18 @@ void simpleNode::createClientSocket()
     memset(&addr, '0', sizeof(addr));
     addr.sin_family = AF_INET;
     addr.sin_port = htons(port);
+
+    //Set connected to false
+    pthread_mutex_lock(&lockConnected);
+    connected = false;
+    pthread_mutex_unlock(&lockConnected);
+
     // Convert IPv4 and IPv6 addresses from text to binary form
     if (inet_pton(AF_INET, simpleNode::IP, &addr.sin_addr) <= 0)
     {
         throw std::invalid_argument("Invalid address/ Address not supported");
     }
 }
-
-
 
 int simpleNode::estConnection()
 {
@@ -76,12 +104,28 @@ int simpleNode::estConnection()
         return -1;
     }
     else
+    {
+        pthread_mutex_lock(&lockConnected);
+        connected = true;
+        pthread_mutex_unlock(&lockConnected);
         return 0;
+    }
 }
 
 int simpleNode::sendString(const char *codigo)
 {
-    return send(sock, codigo, strlen(codigo), 0);
+    bool tmpConnected;
+    pthread_mutex_lock(&lockConnected);
+    tmpConnected = connected;
+    pthread_mutex_unlock(&lockConnected);
+    if (tmpConnected)
+    {
+        return send(sock, codigo, strlen(codigo), 0);
+    }
+    else
+    {
+        return -1;
+    }
 }
 
 int simpleNode::recvString()
