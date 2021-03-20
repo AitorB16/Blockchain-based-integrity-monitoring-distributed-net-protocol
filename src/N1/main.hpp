@@ -15,6 +15,7 @@
 #include "network.hpp"
 #include "server.hpp"
 #include "crypto.hpp"
+#include "utils.hpp"
 
 #define THRESHOLD 2/3
 

@@ -40,82 +40,84 @@ int main(void)
     if (pthread_create(&serverTid, NULL, serverThread, (void *)&args) != 0)
     {
         printf("Error");
+        exit(1);
     }
 
+    // const char *response;
+    int option;
+
+    std::string buffer, response;
+    int dest;
+
+    string IDNodeHash;
+    bool flagValue;
+
+    while (1)
     {
-        // const char *response;
-        int option;
 
-        std::string buffer, response;
-        int dest;
+        // waitpid(-1, NULL, WNOHANG); //KILL ZOMBIE PROCESSES
 
-        string IDNodeHash;
-        bool flagValue;
-
-        while (1)
+        cout << "Enter options" << endl;
+        cin >> option;
+        // sleep(1);
+        switch (option)
         {
+        //Close infraestructure
+        case 0:
+            cout << "Exiting infra" << endl;
+            exit(0);
+            break;
+        //Is infra trusted
+        case 1:
+            cout << net->imTrusted() << endl;
+            break;
+        //BCAST request to send + timeout + count
+        case 2:
+            //Connect to ALL
+            net->connectToAllNodes();
 
-            // waitpid(-1, NULL, WNOHANG); //KILL ZOMBIE PROCESSES
+            //Send request to ALL
 
-            cout << "Enter options" << endl;
-            cin >> option;
-            switch (option)
+            //Enviar solo a los nodos conectados //Code 0 REQUEST
+            net->sendStringToAll(0, net->getID());
+
+            //Wait 2/3 of network to send OK Select; timeout 30sec
+            numRes = net->waitResponses(net->getTrustedNodeNumber() * THRESHOLD);
+
+            cout << "NUM RES: " << numRes << endl;
+
+            if (numRes >= net->getTrustedNodeNumber() * THRESHOLD)
             {
-            //Close infraestructure
-            case 0:
-                cout << "Exiting infra" << endl;
-                exit(0);
-                break;
-            //Is infra trusted
-            case 1:
-                cout << net->imTrusted() << endl;
-                break;
-            //BCAST request to send + timeout + count
-            case 2:
-                //Connect to ALL
-                net->connectToAllNodes();
+                //Send hash
+                net->sendStringToAll(1, net->getID(), "HASH");
 
-                //Send request to ALL
-
-                //Enviar solo a los nodos conectados //Code 0 REQUEST
-                net->sendStringToAll(0, net->getID());
-
-                //Wait 2/3 of network to send OK Select; timeout 30sec
-                numRes = net->waitResponses(net->getTrustedNodeNumber() * THRESHOLD);
-
-                cout << "NUM RES: " << numRes << endl;
-
-                if (numRes >= net->getTrustedNodeNumber() * THRESHOLD)
-                {
-                    //Send hash
-                    net->sendStringToAll(1, net->getID(), "HASH");
-
-                    cout << "hash sent" << endl;
-                }
-                //Network is comprometed
-                else
-                {
-                    cout << "Network is comprometed" << endl;
-                    exit(0);
-                }
-                //Close connection
-                net->reassembleAllSockets();
-                break;
-            case 3:
-                cout << "enter node ID" << endl;
-                cin >> dest;
-                flagValue = net->getNode(dest)->getChangeFlag();
-                cout << flagValue << endl;
-                break;
-            case 4:
-                cout << "enter node ID" << endl;
-                cin >> dest;
-                IDNodeHash = net->getNode(dest)->getCurrentHash();
-                cout << IDNodeHash << endl;
-                break;
-            default:
-                break;
+                cout << "hash sent" << endl;
             }
+            //Network is comprometed
+            else
+            {
+                cout << "Network is comprometed" << endl;
+                // exit(0);
+            }
+            //Close connection
+            net->reassembleAllSockets();
+            break;
+        case 3:
+            cout << "enter node ID" << endl;
+            cin >> dest;
+            flagValue = net->getNode(dest)->getChangeFlag();
+            cout << flagValue << endl;
+            break;
+        case 4:
+            cout << "enter node ID" << endl;
+            cin >> dest;
+            IDNodeHash = net->getNode(dest)->getCurrentHash();
+            cout << IDNodeHash << endl;
+            break;
+        case 5:
+            cout << gen_urandom(1024) << endl;
+        default:
+            break;
         }
     }
 

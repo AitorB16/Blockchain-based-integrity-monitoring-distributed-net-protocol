@@ -261,13 +261,15 @@ void network::sendString(int code, int destID, int sourceID, string content)
     std::string buffer, msg, signedMsg, hexMsg;
 
     //At least 1 sec is needed to generate another random string (cahotic system)
-    sleep(1);
+    // sleep(1);
 
     //Put msg code and source
     buffer = to_string(code) + ";" + to_string(sourceID) + ";";
 
     //Elaborate random datagram
-    msg = gen_random(RANDOM_STR_LEN);
+    // msg = gen_random(RANDOM_STR_LEN);
+
+    msg = gen_urandom(RANDOM_STR_LEN);
 
     int descr = -1;
     try
@@ -297,12 +299,14 @@ void network::sendString(int code, int destID, int sourceID, string content)
 void network::sendStringToAll(int code, int sourceID, string content)
 {
     std::string buffer, msg, signedMsg, hexMsg;
+    char *random;
 
     //At least 1 sec is needed to generate another random string (cahotic system)
-    sleep(1);
+    // sleep(1);
 
     try
     {
+        random = gen_urandom(RANDOM_STR_LEN);
         for (auto const &i : otherNodes)
         {
             if (i->isTrusted())
@@ -311,7 +315,10 @@ void network::sendStringToAll(int code, int sourceID, string content)
                 buffer = to_string(code) + ";" + to_string(sourceID) + ";";
 
                 //Elaborate random datagram SOMETIMES IT TAKES DELAY
-                msg = gen_random(RANDOM_STR_LEN);
+                // msg = gen_random(RANDOM_STR_LEN);
+
+                msg = std::string(random);
+                // cout << msg << endl;
 
                 //Se especifica destino + firma para que otro nodo no use mismo mensaje
                 msg = to_string(i->getID()) + ";" + msg;
@@ -321,10 +328,11 @@ void network::sendStringToAll(int code, int sourceID, string content)
 
                 if (i->sendString(buffer.c_str()) == -1)
                     cout << "Error sending: " << i->getID() << endl;
-                else
-                    cout << "Success sending: " << i->getID() << endl;
+                // else
+                //     cout << "Success sending: " << i->getID() << endl;
             }
         }
+        free(random);
     }
     catch (const std::exception &e)
     {

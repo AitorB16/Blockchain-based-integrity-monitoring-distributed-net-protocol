@@ -26,10 +26,8 @@
 #include "simpleNode.hpp"
 #include "selfNode.hpp"
 
-
-#define RANDOM_STR_LEN 128
+#define RANDOM_STR_LEN 16
 #define DEFAULT_SELECT_WAIT 30
-
 
 class network
 {
@@ -40,13 +38,11 @@ private:
     selfNode *self;
     std::list<simpleNode *> otherNodes;
     std::list<std::string> receivedMsgs;
-    
+
     //set of socket descriptors and control
     fd_set readfds;
     int maxFD;
     // std::list<fd_set> fdsList;
-
-
 
     static network *instance;
     network();
