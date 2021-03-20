@@ -35,9 +35,10 @@ class network
 private:
     int otherNodeNumber;
     int trustedNodeNumber;
+    bool networkComprometed;
     selfNode *self;
     std::list<simpleNode *> otherNodes;
-    std::list<std::string> receivedMsgs;
+    // std::list<std::string> receivedMsgs;
 
     //set of socket descriptors and control
     fd_set readfds;
@@ -57,11 +58,13 @@ public:
     int getTrustedNodeNumber();
     bool imTrusted();
     bool isTrsuted(int ID);
+    bool isNetworkComprometed();
+    void setNetworkToComprometed();
     int getMaxFD();
     fd_set getSetOfSockets();
-    void insertInReceivedMsgs(string s);
-    bool isMsgRepeated(string s);
-    void printOtherNodes();
+    // void insertInReceivedMsgs(string s);
+    // bool isMsgRepeated(string s);
+    void printNetwork();
     // void initializeServer();
     void connectToAllNodes();
     void connectToNode(int ID);

@@ -31,6 +31,7 @@ protected:
     const char *IP;
     struct sockaddr_in addr;
     int port;
+    int SyncNum;
     bool trusted;
     bool changeFlag;
     bool connected;
@@ -48,6 +49,8 @@ public:
     sockaddr_in getAddr();
     string getCurrentHash();
     void setCurrentHash(string hash);
+    int getSyncNum();
+    void incrementSyncNum();
     bool isTrusted();
     bool isConnected();
     void createClientSocket();

@@ -31,11 +31,13 @@ network::network()
     CryptoPP::RSA::PrivateKey prv = get_prv(ID_str);
 
     //Configurations for select
-    FD_ZERO(&readfds); //clear the socket set
-    maxFD = -1;        //initialize maxFD
+    FD_ZERO(&readfds);          //clear the socket set
+    maxFD = -1;                 //initialize maxFD
+    networkComprometed = false; //Network is trusted
 
     try
     {
+
         self = new selfNode(ID, ip, port, pub, prv);
 
         //CREATE SERVER
@@ -117,13 +119,20 @@ bool network::imTrusted()
 }
 bool network::isTrsuted(int ID)
 {
-
     for (auto const &i : otherNodes)
     {
         if (i->getID() == ID)
             return i->isTrusted();
     }
     return false;
+}
+bool network::isNetworkComprometed()
+{
+    return networkComprometed;
+}
+void network::setNetworkToComprometed()
+{
+    networkComprometed = true;
 }
 int network::getMaxFD()
 {
@@ -135,36 +144,37 @@ fd_set network::getSetOfSockets()
     return readfds;
 }
 
-void network::insertInReceivedMsgs(string s)
-{
-    pthread_mutex_lock(&lockMsgList);
-    receivedMsgs.push_back(s);
-    pthread_mutex_unlock(&lockMsgList);
-}
+// void network::insertInReceivedMsgs(string s)
+// {
+//     pthread_mutex_lock(&lockMsgList);
+//     receivedMsgs.push_back(s);
+//     pthread_mutex_unlock(&lockMsgList);
+// }
 
-bool network::isMsgRepeated(string s)
-{
-    bool isRepeated;
-    pthread_mutex_lock(&lockMsgList);
-    for (auto const &i : receivedMsgs)
-    {
-        if (i == s)
-        {
-            isRepeated = true;
-            break;
-        }
-        else
-            isRepeated = false;
-    }
-    pthread_mutex_unlock(&lockMsgList);
-    return isRepeated;
-}
+// bool network::isMsgRepeated(string s)
+// {
+//     bool isRepeated;
+//     pthread_mutex_lock(&lockMsgList);
+//     for (auto const &i : receivedMsgs)
+//     {
+//         if (i == s)
+//         {
+//             isRepeated = true;
+//             break;
+//         }
+//         else
+//             isRepeated = false;
+//     }
+//     pthread_mutex_unlock(&lockMsgList);
+//     return isRepeated;
+// }
 
-void network::printOtherNodes()
+void network::printNetwork()
 {
+    cout << "Self Node ID: " << self->getID() << " #Hash:" << self->getCurrentHash() << " #Is network comprometed: " << networkComprometed << endl;
     for (auto const &i : otherNodes)
     {
-        std::cout << "Adj node ID: " << i->getID() << endl;
+        std::cout << "Node ID: " << i->getID() << " #Trusted: " << i->isTrusted() << " #Hash: " << i->getCurrentHash() << endl;
     }
 }
 
@@ -259,27 +269,28 @@ void network::reassembleAllSockets()
 void network::sendString(int code, int destID, int sourceID, string content)
 {
     std::string buffer, msg, signedMsg, hexMsg;
+    int syncNum;
 
-    //At least 1 sec is needed to generate another random string (cahotic system)
-    // sleep(1);
-
-    //Put msg code and source
-    buffer = to_string(code) + ";" + to_string(sourceID) + ";";
-
-    //Elaborate random datagram
-    // msg = gen_random(RANDOM_STR_LEN);
-
-    msg = gen_urandom(RANDOM_STR_LEN);
-
-    int descr = -1;
     try
     {
         for (auto const &i : otherNodes)
         {
             if (i->getID() == destID)
             {
-                //Se especifica destino + firma para que otro nodo no use mismo mensaje
-                msg = to_string(i->getID()) + ";" + msg;
+
+                //Put msg code
+                buffer = to_string(code) + ";";
+
+                //Random msg
+                // msg = std::string(random);
+
+                //Get and increment Sync Number
+                syncNum = i->getSyncNum();
+                i->incrementSyncNum();
+
+                //Se especifica origen + destino + syncNum
+                msg = to_string(sourceID) + ";" + to_string(i->getID()) + ";" + to_string(syncNum);
+
                 signedMsg = sign(msg, std::to_string(sourceID));
                 hexMsg = stream2hex(signedMsg);
                 buffer = buffer + msg + ";" + hexMsg + ";" + content + ";";
@@ -299,44 +310,42 @@ void network::sendString(int code, int destID, int sourceID, string content)
 void network::sendStringToAll(int code, int sourceID, string content)
 {
     std::string buffer, msg, signedMsg, hexMsg;
-    char *random;
-
-    //At least 1 sec is needed to generate another random string (cahotic system)
-    // sleep(1);
+    int syncNum;
 
     try
     {
-        random = gen_urandom(RANDOM_STR_LEN);
+        // random = gen_urandom(RANDOM_STR_LEN);
         for (auto const &i : otherNodes)
         {
             if (i->isTrusted())
             {
-                //Put msg code and source
-                buffer = to_string(code) + ";" + to_string(sourceID) + ";";
+                //Put msg code
+                buffer = to_string(code) + ";";
 
-                //Elaborate random datagram SOMETIMES IT TAKES DELAY
-                // msg = gen_random(RANDOM_STR_LEN);
+                //Random msg
+                // msg = std::string(random);
 
-                msg = std::string(random);
-                // cout << msg << endl;
+                //Get and increment Sync Number
+                syncNum = i->getSyncNum();
+                i->incrementSyncNum();
 
-                //Se especifica destino + firma para que otro nodo no use mismo mensaje
-                msg = to_string(i->getID()) + ";" + msg;
-                signedMsg = sign(msg, std::to_string(sourceID));
+                //Se especifica origen + destino + firma para que otro nodo no falsifique mensajes
+                msg = to_string(sourceID) + ";" + to_string(i->getID()) + ";" + to_string(syncNum);
+
+                //Se especifica firma
+                signedMsg = sign(msg, to_string(sourceID));
                 hexMsg = stream2hex(signedMsg);
                 buffer = buffer + msg + ";" + hexMsg + ";" + content + ";";
 
                 if (i->sendString(buffer.c_str()) == -1)
                     cout << "Error sending: " << i->getID() << endl;
-                // else
-                //     cout << "Success sending: " << i->getID() << endl;
+                else
+                    cout << "Success sending: " << i->getID() << endl;
             }
         }
-        free(random);
     }
     catch (const std::exception &e)
     {
-        cout << "AAA" << endl;
         std::cerr << e.what() << '\n';
     }
 }
@@ -349,6 +358,9 @@ int network::waitResponses(int resNum)
     int selectStatus;
     int counter = 0;
     fd_set tmpFdSet;
+
+    if (resNum == 0)
+        return 1;
 
     while (1)
     {

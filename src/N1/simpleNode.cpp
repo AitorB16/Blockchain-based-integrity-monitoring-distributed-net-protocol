@@ -3,6 +3,7 @@ using namespace std;
 
 pthread_mutex_t lockChangeFlag = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t lockConnected = PTHREAD_MUTEX_INITIALIZER;
+// pthread_mutex_t lockSyncNum = PTHREAD_MUTEX_INITIALIZER;
 
 simpleNode::simpleNode(){
 
@@ -13,6 +14,7 @@ simpleNode::simpleNode(int ID, const char *ip, int port, CryptoPP::RSA::PublicKe
     simpleNode::sock = 0;
     simpleNode::IP = ip;
     simpleNode::port = port;
+    simpleNode::SyncNum = 0;
     simpleNode::trusted = true;
     simpleNode::changeFlag = false;
     simpleNode::connected = false;
@@ -59,6 +61,14 @@ string simpleNode::getCurrentHash()
 void simpleNode::setCurrentHash(string hash)
 {
     currentHash = hash;
+}
+int simpleNode::getSyncNum()
+{
+    return SyncNum;
+}
+void simpleNode::incrementSyncNum()
+{
+    SyncNum++;
 }
 
 bool simpleNode::isTrusted()

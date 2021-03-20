@@ -45,100 +45,114 @@ void *socketThread(void *arg)
     simpleNode *sN;
     network *net = args->net;
     vector<string> vectString;
-    int msgCode;
+    int msgCode, syncNumReceived, syncNumStored;
 
     bool verifyMsg = false;
-    string clientID, selfID, randMsg, randHexSignedMsg, content;
+    string clientID, selfID, MsgToVerify, MsgSignature, content;
 
     while (1)
     {
+        //Clean buffers and vars
         bzero(buffer, sizeof(buffer));
         bzero(sendBuffer, sizeof(sendBuffer));
+        verifyMsg = false;
 
         recv(clientSocket, buffer, 1024, 0);
 
         vectString = splitBuffer(buffer); //from utils
 
-        msgCode = atoi(vectString.at(0).c_str());  //MSG CODE
-        clientID = vectString.at(1);               //Source ID
-        selfID = vectString.at(2);                 //ID of current server
-        randMsg = selfID + ";" + vectString.at(3); //RandomMsg !!TENER EN CUENTA QUE EL ID DEL SERVER ESTA FIRMADO JUNTO CON LOS CARACTERES ALEATORIOS
-        randHexSignedMsg = vectString.at(4);       //RandomMsg signed
-        content = vectString.at(5);                //Payload of the msg
+        msgCode = atoi(vectString.at(0).c_str());         //MSG CODE
+        clientID = vectString.at(1);                      //Source ID
+        selfID = vectString.at(2);                        //ID of current server
+        syncNumReceived = atoi(vectString.at(3).c_str()); //SyncNum
+
+        MsgToVerify = clientID + ";" + selfID + ";" + vectString.at(3); //RandomMsg !!TENER EN CUENTA QUE EL ID DEL SERVER ESTA FIRMADO JUNTO CON LOS CARACTERES ALEATORIOS
+
+        MsgSignature = vectString.at(4); //RandomMsg signed
+        content = vectString.at(5);      //Payload of the msg
 
         //get connected corresponeded node
         sN = net->getNode(atoi(clientID.c_str()));
+
+        //Verify if msg is for me
+        if (atoi(selfID.c_str()) == net->getID())
+        {
+            //Verify if sync number is correct
+            syncNumStored = sN->getSyncNum();
+            if (syncNumReceived == syncNumStored)
+            {
+                //Verify if msg is correctly signed
+                if (verify(MsgToVerify, hex2stream(MsgSignature), clientID))
+                {
+                    //Increment sync number
+                    sN->incrementSyncNum();
+                    //Verification successful
+                    verifyMsg = true;
+                }
+            }
+        }
+        if (!verifyMsg)
+        {
+
+            //Attempt of message falsification
+            cout << "Disconnected message was faked" << endl;
+            close(clientSocket);
+            pthread_exit(NULL);
+        }
 
         //Create new args of simpleNode
         argSimpleNode.sN = sN;
         argSimpleNode.s = clientSocket;
 
-        //Verify is im destination
-        if (atoi(selfID.c_str()) == net->getID())
+        switch (msgCode)
         {
-            switch (msgCode)
+        //Modify current hash request
+        case 0:
+
+            //Activar flag usando cerraduras
+            sN->setChangeFlag(true);
+            //cout << n->getChangeFlag() <<endl;
+
+            //Lanzar thread contador para anular cerradura
+            pthread_t tid;
+            if (pthread_create(&tid, NULL, timerThread, (void *)&argSimpleNode) != 0)
             {
-            //Modify current hash request
-            case 0:
-                if (!net->isMsgRepeated(randMsg))
-                {
-                    if (verify(randMsg, hex2stream(randHexSignedMsg), clientID))
-                    {
-                        net->insertInReceivedMsgs(randMsg);
-                        //Activar flag usando cerraduras
-                        sN->setChangeFlag(true);
-                        //cout << n->getChangeFlag() <<endl;
-
-                        //Lanzar thread contador para anular cerradura
-                        pthread_t tid;
-                        if (pthread_create(&tid, NULL, timerThread, (void *)&argSimpleNode) != 0)
-                        {
-                            printf("Error");
-                        }
-                        //pthread_join(tid, NULL);
-
-                        //Enviar mensaje aleatorio de vuelta
-                        sendBuffer[0] = 'A';
-                        send(clientSocket, sendBuffer, strlen(sendBuffer), 0);
-                        cout << "SENT" << endl;
-                    }
-                }
-                //Dont close connection, we spect to receive the new hash from same node
-                break;
-
-            //Update hash of simpleNode
-            case 1:
-                cout << "received" << endl;
-                if (!net->isMsgRepeated(randMsg))
-                {
-                    if (verify(randMsg, hex2stream(randHexSignedMsg), clientID))
-                    {
-                        net->insertInReceivedMsgs(randMsg);
-                        if (sN->getChangeFlag())
-                        {
-                            //Update hash of network node
-                            sN->setCurrentHash(content);
-
-                            //Desactivar flag usando cerraduras
-                            sN->setChangeFlag(false);
-                        }
-                    }
-                }
-                //Close connection
-                cout << "Disconnected" << endl;
-                close(clientSocket);
-                pthread_exit(NULL);
-                break;
-            default:
-                break;
+                cout << "Error" << endl;
             }
-        }
-        else
-        {
-            //Attempt of message falsification
-            cout << "Disconnected message was faked" << endl;
+            //pthread_join(tid, NULL);
+
+            //Enviar mensaje aleatorio de vuelta
+            sendBuffer[0] = 'A';
+            send(clientSocket, sendBuffer, strlen(sendBuffer), 0);
+            cout << "SENT" << endl;
+
+            //Dont close connection, we spect to receive the new hash from same node
+            break;
+
+        //Update hash of simpleNode
+        case 1:
+            cout << "received" << endl;
+
+            //As we use the same socket -> no problem with faked messages
+            if (verify(MsgToVerify, hex2stream(MsgSignature), clientID))
+            {
+                if (sN->getChangeFlag())
+                {
+                    //Update hash of network node
+                    sN->setCurrentHash(content);
+
+                    //Desactivar flag usando cerraduras
+                    sN->setChangeFlag(false);
+                }
+            }
+
+            //Close connection
+            cout << "Disconnected" << endl;
             close(clientSocket);
             pthread_exit(NULL);
+            break;
+        default:
+            break;
         }
     }
 }
