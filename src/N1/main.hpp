@@ -14,6 +14,7 @@
 // #include "crypto.hpp"
 #include "network.hpp"
 #include "server.hpp"
+#include "auditor.hpp"
 #include "crypto.hpp"
 #include "utils.hpp"
 

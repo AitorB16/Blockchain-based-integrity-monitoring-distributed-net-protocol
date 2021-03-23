@@ -13,7 +13,7 @@ private:
 public: 
     server();
     server(network *selfNetwork);
-    int serverUP(int max_c);
+    int serverUP();
 };
 
 #endif

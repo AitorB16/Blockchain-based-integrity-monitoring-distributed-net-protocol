@@ -73,6 +73,7 @@ public:
     void sendString(int code, int destID, int sourceID, string content = "");
     void sendStringToAll(int code, int sourceID, string content = "");
     int waitResponses(int resNum);
+    int getTrustedRandomNode();
     void recvString(int ID, const char *servResponse);
     // void sendPackage();sendPackage Google buffer, XML
 };

@@ -19,5 +19,6 @@ string stream2hex(const std::string str);
 string hex2stream(const std::string hexstr);
 string gen_random(const int len);
 char * gen_urandom(int len);
+int get_randomNumber(int maxNum);
 
 #endif

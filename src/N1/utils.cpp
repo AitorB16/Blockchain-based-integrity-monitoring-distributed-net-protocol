@@ -90,3 +90,15 @@ char *gen_urandom(int len)
     return myRandomData;
     //free(myRandomData);
 }
+
+int get_randomNumber(int maxNum)
+{
+    int num;
+    unsigned char buffer[1];
+    int fd = open("/dev/urandom", O_RDONLY);
+    read(fd, buffer, 1);
+    close(fd);
+    num = (int) buffer[0];
+    num = num % maxNum;
+    return num;
+}

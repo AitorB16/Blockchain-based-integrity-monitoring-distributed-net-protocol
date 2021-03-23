@@ -43,11 +43,12 @@ void *socketThread(void *arg)
 
     int clientSocket = args->s;
     simpleNode *sN;
+    // sN->setSocket(clientSocket);
     network *net = args->net;
     vector<string> vectString;
     int msgCode, syncNumReceived, syncNumStored;
 
-    bool verifyMsg = false;
+    bool verifyMsg;
     string clientID, selfID, MsgToVerify, MsgSignature, content;
 
     while (1)
@@ -122,7 +123,7 @@ void *socketThread(void *arg)
             //pthread_join(tid, NULL);
 
             //Enviar mensaje aleatorio de vuelta
-            sendBuffer[0] = 'A';
+            strcpy(sendBuffer, "ACK");
             send(clientSocket, sendBuffer, strlen(sendBuffer), 0);
             cout << "SENT" << endl;
 
@@ -157,11 +158,12 @@ void *socketThread(void *arg)
     }
 }
 
-int server::serverUP(int max_c)
+int server::serverUP()
 {
     int newSocket;
     int sock = selfNetwork->getSelfNode()->getSock();
     sockaddr_in addr = selfNetwork->getSelfNode()->getAddr();
+    int max_c = selfNetwork->getNodeNumber(); //At the begining all nodes are trusted
     int addrlen = sizeof(addr);
     int i = 0;
     argStructNetworkAndNode args;

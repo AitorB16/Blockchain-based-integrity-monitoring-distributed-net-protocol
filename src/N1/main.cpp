@@ -15,7 +15,21 @@ void *serverThread(void *arg)
 
     server *s;
     s = new server(net);
-    s->serverUP(net->getNodeNumber());
+    s->serverUP();
+
+    pthread_exit(NULL);
+}
+
+//Auditor thread start
+void *auditorThread(void *arg)
+{
+    struct argNetwork *args = (struct argNetwork *)arg;
+
+    network *net = args->net;
+
+    auditor *a;
+    a = new auditor(net);
+    a->auditorUP();
 
     pthread_exit(NULL);
 }
@@ -23,7 +37,7 @@ void *serverThread(void *arg)
 int main(void)
 {
 
-    pthread_t serverTid;
+    pthread_t serverTid, auditorTid;
 
     network *net = net->getInstance();
 
@@ -37,7 +51,15 @@ int main(void)
     //Print other nodes
     net->printNetwork();
 
+    //Launch the server
     if (pthread_create(&serverTid, NULL, serverThread, (void *)&args) != 0)
+    {
+        printf("Error");
+        exit(1);
+    }
+
+    //Launch the auditor
+    if (pthread_create(&serverTid, NULL, auditorThread, (void *)&args) != 0)
     {
         printf("Error");
         exit(1);

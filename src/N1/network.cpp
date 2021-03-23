@@ -399,6 +399,31 @@ int network::waitResponses(int resNum)
     return counter;
 }
 
+int network::getTrustedRandomNode()
+{
+    int random = -1;
+    //If no node is trusted return -1
+    if (trustedNodeNumber < 1)
+        return random;
+
+    //If there are trusted nodes, pick one among them
+    while (1)
+    {
+        //Self node must be counted as well +1; first node starts at 1 -> +1
+        random = get_randomNumber(otherNodeNumber + 1 + 1);
+        for (auto const &i : otherNodes)
+        {
+            if (i->getID() == random)
+            {
+                if (i->isTrusted() && !i->getChangeFlag())
+                {
+                    return random;
+                }
+            }
+        }
+    }
+}
+
 void network::recvString(int ID, const char *servResponse)
 {
     try
