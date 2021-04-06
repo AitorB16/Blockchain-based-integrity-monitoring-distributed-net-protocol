@@ -1,5 +1,23 @@
 #include "server.hpp"
 
+vector<string> recvVectStringSocket(int s)
+{
+    vector<string> vs;
+    char buffer[1024];
+    bzero(buffer, sizeof(buffer));
+    try
+    {
+        recv(s, buffer, 1024, 0);
+        vs = splitBuffer(buffer);
+        return vs;
+    }
+    catch (const std::exception &e)
+    {
+        std::cerr << e.what() << '\n';
+        return vs;
+    }
+}
+
 server::server(){
 
 };
@@ -35,7 +53,6 @@ void *timerThread(void *arg)
 
 void *socketThread(void *arg)
 {
-    char buffer[1024];
     char sendBuffer[1024];
 
     struct argStructNetworkAndNode *args = (struct argStructNetworkAndNode *)arg;
@@ -43,56 +60,33 @@ void *socketThread(void *arg)
 
     int clientSocket = args->s;
     simpleNode *sN;
+
     // sN->setSocket(clientSocket);
+
     network *net = args->net;
     vector<string> vectString;
     int msgCode, syncNumReceived, syncNumStored;
 
-    bool verifyMsg;
     string clientID, selfID, MsgToVerify, MsgSignature, content;
+
+    bool msgValid = false;
 
     while (1)
     {
         //Clean buffers and vars
-        bzero(buffer, sizeof(buffer));
         bzero(sendBuffer, sizeof(sendBuffer));
-        verifyMsg = false;
 
-        recv(clientSocket, buffer, 1024, 0);
+        vectString = recvVectStringSocket(clientSocket);
 
-        vectString = splitBuffer(buffer); //from utils
-
-        msgCode = atoi(vectString.at(0).c_str());         //MSG CODE
-        clientID = vectString.at(1);                      //Source ID
-        selfID = vectString.at(2);                        //ID of current server
-        syncNumReceived = atoi(vectString.at(3).c_str()); //SyncNum
-
-        MsgToVerify = clientID + ";" + selfID + ";" + vectString.at(3); //RandomMsg !!TENER EN CUENTA QUE EL ID DEL SERVER ESTA FIRMADO JUNTO CON LOS CARACTERES ALEATORIOS
-
-        MsgSignature = vectString.at(4); //RandomMsg signed
-        content = vectString.at(5);      //Payload of the msg
+        splitVectString(vectString, msgCode, clientID, selfID, syncNumReceived, MsgToVerify, MsgSignature, content);
 
         //get connected corresponeded node
         sN = net->getNode(atoi(clientID.c_str()));
 
-        //Verify if msg is for me
-        if (atoi(selfID.c_str()) == net->getID())
-        {
-            //Verify if sync number is correct
-            syncNumStored = sN->getSyncNum();
-            if (syncNumReceived == syncNumStored)
-            {
-                //Verify if msg is correctly signed
-                if (verify(MsgToVerify, hex2stream(MsgSignature), clientID))
-                {
-                    //Increment sync number
-                    sN->incrementSyncNum();
-                    //Verification successful
-                    verifyMsg = true;
-                }
-            }
-        }
-        if (!verifyMsg)
+        //If msg is not valid, close connection.
+        msgValid = net->validateMsg(selfID, clientID, syncNumReceived, MsgToVerify, MsgSignature);
+
+        if (!msgValid)
         {
 
             //Attempt of message falsification
@@ -122,7 +116,7 @@ void *socketThread(void *arg)
             }
             //pthread_join(tid, NULL);
 
-            //Enviar mensaje aleatorio de vuelta
+            //Enviar mensaje ACK de vuelta
             strcpy(sendBuffer, "ACK");
             send(clientSocket, sendBuffer, strlen(sendBuffer), 0);
             cout << "SENT" << endl;
@@ -153,6 +147,10 @@ void *socketThread(void *arg)
             pthread_exit(NULL);
             break;
         default:
+            //Close connection
+            cout << "Disconnected" << endl;
+            close(clientSocket);
+            pthread_exit(NULL);
             break;
         }
     }

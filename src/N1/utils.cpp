@@ -102,3 +102,48 @@ int get_randomNumber(int maxNum)
     num = num % maxNum;
     return num;
 }
+
+void splitVectString(vector<string> vectString, int &msgCode, string &clientID, string &selfID, int &syncNumReceived, string &MsgToVerify, string &MsgSignature, string &content)
+{
+
+    msgCode = atoi(vectString.at(0).c_str());         //MSG CODE
+    clientID = vectString.at(1);                      //Source ID
+    selfID = vectString.at(2);                        //ID of current server
+    syncNumReceived = atoi(vectString.at(3).c_str()); //SyncNum
+
+    MsgToVerify = clientID + ";" + selfID + ";" + vectString.at(3); //RandomMsg !!TENER EN CUENTA QUE EL ID DEL SERVER ESTA FIRMADO JUNTO CON LOS CARACTERES ALEATORIOS
+
+    MsgSignature = vectString.at(4); //RandomMsg signed
+    content = vectString.at(5);      //Payload of the msg
+}
+
+// void validateMsg(network *net, string selfID, string clientID, int syncNumStored, int syncNumReceived, simpleNode *sN, string MsgToVerify, string MsgSignature, int clientSocket)
+// {
+//     //Verify if msg is for me
+//     bool verifyMsg = false;
+
+//     if (atoi(selfID.c_str()) == net->getID())
+//     {
+//         //Verify if sync number is correct
+//         syncNumStored = sN->getSyncNum();
+//         if (syncNumReceived == syncNumStored)
+//         {
+//             //Verify if msg is correctly signed
+//             if (verify(MsgToVerify, hex2stream(MsgSignature), clientID))
+//             {
+//                 //Increment sync number
+//                 sN->incrementSyncNum();
+//                 //Verification successful
+//                 verifyMsg = true;
+//             }
+//         }
+//     }
+//     if (!verifyMsg)
+//     {
+
+//         //Attempt of message falsification
+//         cout << "Disconnected message was faked" << endl;
+//         close(clientSocket);
+//         pthread_exit(NULL);
+//     }
+// }

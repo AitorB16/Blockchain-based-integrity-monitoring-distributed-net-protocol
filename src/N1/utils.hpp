@@ -20,5 +20,5 @@ string hex2stream(const std::string hexstr);
 string gen_random(const int len);
 char * gen_urandom(int len);
 int get_randomNumber(int maxNum);
-
+void splitVectString(vector<string> vectString, int &msgCode, string &clientID, string &selfID, int &syncNumReceived, string &MsgToVerify, string &MsgSignature, string &content);
 #endif

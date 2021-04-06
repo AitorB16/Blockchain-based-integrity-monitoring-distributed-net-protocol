@@ -23,6 +23,8 @@
 #include "utils.hpp"
 #include "crypto.hpp"
 
+#define TRUST_LEVEL 5
+
 class simpleNode
 {
 protected:
@@ -31,8 +33,8 @@ protected:
     const char *IP;
     struct sockaddr_in addr;
     int port;
-    int SyncNum;
-    bool trusted;
+    int syncNum;
+    int trustLvl;
     bool changeFlag;
     bool connected;
     CryptoPP::RSA::PublicKey pub;
@@ -56,7 +58,7 @@ public:
     void createClientSocket();
     int estConnection();
     int sendString(const char *codigo);
-    int recvString();
+    string recvString();
 
 };
 

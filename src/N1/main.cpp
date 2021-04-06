@@ -59,11 +59,13 @@ int main(void)
     }
 
     //Launch the auditor
-    if (pthread_create(&serverTid, NULL, auditorThread, (void *)&args) != 0)
-    {
-        printf("Error");
-        exit(1);
-    }
+    // if (pthread_create(&serverTid, NULL, auditorThread, (void *)&args) != 0)
+    // {
+    //     printf("Error");
+    //     exit(1);
+    // }
+
+    //SYNC NUMBERS REQ
 
     // const char *response;
     int option;
@@ -140,10 +142,6 @@ int main(void)
             cin >> dest;
             IDNodeHash = net->getNode(dest)->getCurrentHash();
             cout << IDNodeHash << endl;
-            break;
-        //Print Network
-        case 5:
-            net->printNetwork();
             break;
         default:
             break;

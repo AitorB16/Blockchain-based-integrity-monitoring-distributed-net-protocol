@@ -14,8 +14,8 @@ simpleNode::simpleNode(int ID, const char *ip, int port, CryptoPP::RSA::PublicKe
     simpleNode::sock = 0;
     simpleNode::IP = ip;
     simpleNode::port = port;
-    simpleNode::SyncNum = 0;
-    simpleNode::trusted = true;
+    simpleNode::syncNum = 0;
+    simpleNode::trustLvl = TRUST_LEVEL;
     simpleNode::changeFlag = false;
     simpleNode::connected = false;
     simpleNode::pub = pub;
@@ -64,16 +64,19 @@ void simpleNode::setCurrentHash(string hash)
 }
 int simpleNode::getSyncNum()
 {
-    return SyncNum;
+    return syncNum;
 }
 void simpleNode::incrementSyncNum()
 {
-    SyncNum++;
+    syncNum++;
 }
 
 bool simpleNode::isTrusted()
 {
-    return simpleNode::trusted;
+    if (trustLvl > 0)
+        return true;
+    else
+        return false;
 }
 
 bool simpleNode::isConnected()
@@ -124,6 +127,7 @@ int simpleNode::estConnection()
 
 int simpleNode::sendString(const char *codigo)
 {
+    //Igual no necesario -1
     bool tmpConnected;
     pthread_mutex_lock(&lockConnected);
     tmpConnected = connected;
@@ -138,27 +142,19 @@ int simpleNode::sendString(const char *codigo)
     }
 }
 
-int simpleNode::recvString()
+string simpleNode::recvString()
 {
     char buffer[1024];
+
+    bzero(buffer, 1024);
 
     if (recv(sock, buffer, 1024, 0) < 0)
     {
         printf("[-]Error in receiving data.\n");
-        return -1;
+        return "";
     }
     else
     {
-        if (strcmp(buffer, ":exit") == 0)
-        {
-            close(sock);
-            cout << "disconnected from server" << endl;
-        }
-        else
-        {
-            cout << buffer << endl;
-            bzero(buffer, 1024);
-        }
-        return 0;
+        return buffer;
     }
 }

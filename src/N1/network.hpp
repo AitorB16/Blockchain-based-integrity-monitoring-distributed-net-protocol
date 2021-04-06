@@ -27,7 +27,7 @@
 #include "selfNode.hpp"
 
 #define RANDOM_STR_LEN 16
-#define DEFAULT_SELECT_WAIT 30
+#define NETWORK_SELECT_WAIT 30
 
 class network
 {
@@ -67,14 +67,15 @@ public:
     void printNetwork();
     // void initializeServer();
     void connectToAllNodes();
-    void connectToNode(int ID);
+    bool connectToNode(int ID);
     void reassembleSocket(int ID);
     void reassembleAllSockets();
-    void sendString(int code, int destID, int sourceID, string content = "");
+    bool validateMsg(string selfID, string clientID, int syncNumReceived, string MsgToVerify, string MsgSignature);
+    bool sendString(int code, int destID, int sourceID, string content = "");
     void sendStringToAll(int code, int sourceID, string content = "");
     int waitResponses(int resNum);
     int getTrustedRandomNode();
-    void recvString(int ID, const char *servResponse);
+    string recvString(int ID);
     // void sendPackage();sendPackage Google buffer, XML
 };
 

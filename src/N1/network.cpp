@@ -207,7 +207,7 @@ void network::connectToAllNodes()
     }
 }
 
-void network::connectToNode(int ID)
+bool network::connectToNode(int ID)
 {
     try
     {
@@ -220,14 +220,19 @@ void network::connectToNode(int ID)
                     if (i->estConnection() == -1)
                         cout << "Error connection: " << i->getID() << endl;
                     else
+                    {
                         cout << "Success connection: " << ID << endl;
+                        return true;
+                    }
                 }
             }
         }
+        return false;
     }
     catch (const std::exception &e)
     {
         std::cerr << e.what() << '\n';
+        return false;
     }
 }
 
@@ -266,7 +271,33 @@ void network::reassembleAllSockets()
         std::cerr << e.what() << '\n';
     }
 }
-void network::sendString(int code, int destID, int sourceID, string content)
+
+bool network::validateMsg(string selfID, string clientID, int syncNumReceived, string MsgToVerify, string MsgSignature)
+{
+    //Verify if msg is for me
+    int syncNumStored;
+    simpleNode *sN = getNode(atoi(clientID.c_str()));
+
+    if (atoi(selfID.c_str()) == self->getID())
+    {
+        //Verify if sync number is correct
+        syncNumStored = sN->getSyncNum();
+        if (syncNumReceived == syncNumStored)
+        {
+            //Verify if msg is correctly signed
+            if (verify(MsgToVerify, hex2stream(MsgSignature), clientID))
+            {
+                //Increment sync number
+                sN->incrementSyncNum();
+                //Verification successful
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool network::sendString(int code, int destID, int sourceID, string content)
 {
     std::string buffer, msg, signedMsg, hexMsg;
     int syncNum;
@@ -297,13 +328,18 @@ void network::sendString(int code, int destID, int sourceID, string content)
                 if (i->sendString(buffer.c_str()) == -1)
                     cout << "Error sending: " << i->getID() << endl;
                 else
+                {
                     cout << "Success sending: " << destID << endl;
+                    return true;
+                }
             }
         }
+        return false;
     }
     catch (const std::exception &e)
     {
         std::cerr << e.what() << '\n';
+        return false;
     }
 }
 
@@ -352,7 +388,7 @@ void network::sendStringToAll(int code, int sourceID, string content)
 int network::waitResponses(int resNum)
 {
     struct timeval tv;
-    tv.tv_sec = DEFAULT_SELECT_WAIT;
+    tv.tv_sec = NETWORK_SELECT_WAIT;
     tv.tv_usec = 0;
 
     int selectStatus;
@@ -424,7 +460,7 @@ int network::getTrustedRandomNode()
     }
 }
 
-void network::recvString(int ID, const char *servResponse)
+string network::recvString(int ID)
 {
     try
     {
@@ -432,15 +468,14 @@ void network::recvString(int ID, const char *servResponse)
         {
             if (i->getID() == ID)
             {
-                if (i->recvString() == -1)
-                    cout << "Error reciving: " << i->getID() << endl;
-                else
-                    cout << "Success reciving: " << ID << endl;
+                return i->recvString();
             }
         }
+        return "";
     }
     catch (const std::exception &e)
     {
         std::cerr << e.what() << '\n';
+        return "";
     }
 }
