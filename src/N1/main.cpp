@@ -58,12 +58,12 @@ int main(void)
         exit(1);
     }
 
-    //Launch the auditor
-    // if (pthread_create(&serverTid, NULL, auditorThread, (void *)&args) != 0)
-    // {
-    //     printf("Error");
-    //     exit(1);
-    // }
+    // //Launch the auditor
+    if (pthread_create(&serverTid, NULL, auditorThread, (void *)&args) != 0)
+    {
+        printf("Error");
+        exit(1);
+    }
 
     //SYNC NUMBERS REQ
 
@@ -71,10 +71,14 @@ int main(void)
     int option;
 
     std::string buffer, response;
+    
+    string input;
     int dest;
 
     string IDNodeHash;
     bool flagValue;
+
+    //WE NEED A SYNC METHOD
 
     while (1)
     {
@@ -108,14 +112,14 @@ int main(void)
                 net->sendStringToAll(0, net->getID());
 
                 //Wait 2/3 of network to send OK Select; timeout 30sec
-                numRes = net->waitResponses(net->getTrustedNodeNumber() * THRESHOLD);
+                numRes = net->waitResponses(net->getTrustedNodeNumber() * THRESHOLD, NETWORK_SELECT_WAIT);
 
                 cout << "NUM RES: " << numRes << endl;
 
                 if (numRes >= net->getTrustedNodeNumber() * THRESHOLD)
                 {
                     //Send hash
-                    net->sendStringToAll(1, net->getID(), "HASH");
+                    net->sendStringToAll(1, net->getID(), net->getSelfNode()->getLastHash());
 
                     cout << "hash sent" << endl;
                 }
@@ -140,9 +144,14 @@ int main(void)
         case 4:
             cout << "enter node ID" << endl;
             cin >> dest;
-            IDNodeHash = net->getNode(dest)->getCurrentHash();
+            IDNodeHash = net->getNode(dest)->getLastHash();
             cout << IDNodeHash << endl;
             break;
+        //Update selfhash manualy.
+        case 5:
+            cout << "enter new hash" << endl;
+            cin >> input;
+            net->getSelfNode()->updateHashList(input);
         default:
             break;
         }

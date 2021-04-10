@@ -38,7 +38,7 @@ network::network()
     try
     {
 
-        self = new selfNode(ID, ip, port, pub, prv);
+        self = new selfNode(ID, ip, port, pub, prv, "c54008913c9085a5a5b322e1f8eb050b843874c5d00811e1bfba2e9bbbb15a4b");
 
         //CREATE SERVER
         self->createServerSocket();
@@ -86,10 +86,10 @@ simpleNode *network::getNode(int ID)
     {
         if (i->getID() == ID)
         {
-            if (i->isTrusted())
-            {
-                return i;
-            }
+            // if (i->isTrusted())
+            // {
+            return i;
+            // }
         }
     }
     return NULL;
@@ -113,11 +113,31 @@ int network::getTrustedNodeNumber()
     return trustedNodeNumber;
 }
 
+void network::updateTrustedNodeNumber()
+{
+    int tmpTrustNum = 0;
+    for (auto const &i : otherNodes)
+    {
+        if (i->isTrusted())
+            tmpTrustNum++;
+    }
+    trustedNodeNumber = tmpTrustNum;
+}
+
 bool network::imTrusted()
 {
     return self->isTrusted();
 }
 bool network::isTrsuted(int ID)
+{
+    for (auto const &i : otherNodes)
+    {
+        if (i->getID() == ID)
+            return i->isTrusted();
+    }
+    return false;
+}
+int network::trustLvl(int ID)
 {
     for (auto const &i : otherNodes)
     {
@@ -171,10 +191,10 @@ fd_set network::getSetOfSockets()
 
 void network::printNetwork()
 {
-    cout << "Self Node ID: " << self->getID() << " #Hash:" << self->getCurrentHash() << " #Is network comprometed: " << networkComprometed << endl;
+    cout << "Self Node ID: " << self->getID() << " #Hash:" << self->getLastHash() << " #Is network comprometed: " << networkComprometed << endl;
     for (auto const &i : otherNodes)
     {
-        std::cout << "Node ID: " << i->getID() << " #Trusted: " << i->isTrusted() << " #Hash: " << i->getCurrentHash() << endl;
+        std::cout << "Node ID: " << i->getID() << " #Trusted: " << i->isTrusted() << " #Hash: " << i->getLastHash() << endl;
     }
 }
 
@@ -189,6 +209,8 @@ void network::connectToAllNodes()
                 if (i->estConnection() == -1)
                 {
                     cout << "Error connection: " << i->getID() << endl;
+                    //Decrease confidence if node is not avalible
+                    i->decreaseTrustLvlIn(DEFAULT_DECREASE_CNT);
                 }
                 else
                 {
@@ -218,7 +240,11 @@ bool network::connectToNode(int ID)
                 if (i->isTrusted())
                 {
                     if (i->estConnection() == -1)
+                    {
                         cout << "Error connection: " << i->getID() << endl;
+                        //Decrease confidence if node is not avalible
+                        i->decreaseTrustLvlIn(DEFAULT_DECREASE_CNT);
+                    }
                     else
                     {
                         cout << "Success connection: " << ID << endl;
@@ -306,30 +332,27 @@ bool network::sendString(int code, int destID, int sourceID, string content)
     {
         for (auto const &i : otherNodes)
         {
-            if (i->getID() == destID)
+            if (i->getID() == destID && i->isTrusted())
             {
-
-                //Put msg code
-                buffer = to_string(code) + ";";
 
                 //Random msg
                 // msg = std::string(random);
 
                 //Get and increment Sync Number
                 syncNum = i->getSyncNum();
-                i->incrementSyncNum();
-
-                //Se especifica origen + destino + syncNum
-                msg = to_string(sourceID) + ";" + to_string(i->getID()) + ";" + to_string(syncNum);
+                //Se especifica origen + destino + syncNum + content
+                msg = to_string(code) + ";" + to_string(sourceID) + ";" + to_string(i->getID()) + ";" + to_string(syncNum) + ";" + content;
 
                 signedMsg = sign(msg, std::to_string(sourceID));
                 hexMsg = stream2hex(signedMsg);
-                buffer = buffer + msg + ";" + hexMsg + ";" + content + ";";
+                msg = msg + ";" + hexMsg + ";";
+                buffer = msg;
                 if (i->sendString(buffer.c_str()) == -1)
                     cout << "Error sending: " << i->getID() << endl;
                 else
                 {
                     cout << "Success sending: " << destID << endl;
+                    i->incrementSyncNum();
                     return true;
                 }
             }
@@ -355,28 +378,30 @@ void network::sendStringToAll(int code, int sourceID, string content)
         {
             if (i->isTrusted())
             {
-                //Put msg code
-                buffer = to_string(code) + ";";
 
                 //Random msg
                 // msg = std::string(random);
 
                 //Get and increment Sync Number
                 syncNum = i->getSyncNum();
-                i->incrementSyncNum();
 
-                //Se especifica origen + destino + firma para que otro nodo no falsifique mensajes
-                msg = to_string(sourceID) + ";" + to_string(i->getID()) + ";" + to_string(syncNum);
+                //Se especifica origen + destino + syncNum + content
+                msg = to_string(code) + ";" + to_string(sourceID) + ";" + to_string(i->getID()) + ";" + to_string(syncNum) + ";" + content;
 
-                //Se especifica firma
-                signedMsg = sign(msg, to_string(sourceID));
+                //PROBLEMS SINGING OVER SIGN, NEED HASHING???
+
+                signedMsg = sign(msg, std::to_string(sourceID));
                 hexMsg = stream2hex(signedMsg);
-                buffer = buffer + msg + ";" + hexMsg + ";" + content + ";";
+                msg = msg + ";" + hexMsg + ";";
+                buffer = msg;
 
                 if (i->sendString(buffer.c_str()) == -1)
                     cout << "Error sending: " << i->getID() << endl;
                 else
+                {
                     cout << "Success sending: " << i->getID() << endl;
+                    i->incrementSyncNum();
+                }
             }
         }
     }
@@ -385,10 +410,54 @@ void network::sendStringToAll(int code, int sourceID, string content)
         std::cerr << e.what() << '\n';
     }
 }
-int network::waitResponses(int resNum)
+
+// void network::sendStringToAllNotSingingContent(int code, int sourceID, string content)
+// {
+//     std::string buffer, msg, signedMsg, hexMsg;
+//     int syncNum;
+
+//     try
+//     {
+//         // random = gen_urandom(RANDOM_STR_LEN);
+//         for (auto const &i : otherNodes)
+//         {
+//             if (i->isTrusted())
+//             {
+
+//                 //Random msg
+//                 // msg = std::string(random);
+
+//                 //Get and increment Sync Number
+//                 syncNum = i->getSyncNum();
+
+//                 //Se especifica origen + destino + syncNum
+//                 msg = to_string(code) + ";" + to_string(sourceID) + ";" + to_string(i->getID()) + ";" + to_string(syncNum);
+
+//                 signedMsg = sign(msg, std::to_string(sourceID));
+//                 hexMsg = stream2hex(signedMsg);
+//                 msg = msg + ";" + content + ";" + hexMsg + ";";
+//                 buffer = msg;
+
+//                 if (i->sendString(buffer.c_str()) == -1)
+//                     cout << "Error sending: " << i->getID() << endl;
+//                 else
+//                 {
+//                     cout << "Success sending: " << i->getID() << endl;
+//                     i->incrementSyncNum();
+//                 }
+//             }
+//         }
+//     }
+//     catch (const std::exception &e)
+//     {
+//         std::cerr << e.what() << '\n';
+//     }
+// }
+
+int network::waitResponses(int resNum, int select_time, int sub)
 {
     struct timeval tv;
-    tv.tv_sec = NETWORK_SELECT_WAIT;
+    tv.tv_sec = select_time;
     tv.tv_usec = 0;
 
     int selectStatus;
@@ -401,7 +470,7 @@ int network::waitResponses(int resNum)
     while (1)
     {
         //just monitorize trusted sockets; low-eq maxFD descriptor
-        selectStatus = select(maxFD + 1, &readfds, NULL, NULL, &tv);
+        selectStatus = select(maxFD + 1 - sub, &readfds, NULL, NULL, &tv);
         //
         counter += selectStatus;
 
@@ -439,7 +508,7 @@ int network::getTrustedRandomNode()
 {
     int random = -1;
     //If no node is trusted return -1
-    if (trustedNodeNumber < 1)
+    if (trustedNodeNumber < 2)
         return random;
 
     //If there are trusted nodes, pick one among them
@@ -457,6 +526,14 @@ int network::getTrustedRandomNode()
                 }
             }
         }
+    }
+}
+
+void network::resetTrustLvl()
+{
+    for (auto const &i : otherNodes)
+    {
+        i->resetTrustLvl();
     }
 }
 

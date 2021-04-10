@@ -28,6 +28,8 @@
 
 #define RANDOM_STR_LEN 16
 #define NETWORK_SELECT_WAIT 30
+#define THRESHOLD 2/3
+
 
 class network
 {
@@ -56,8 +58,10 @@ public:
     void setID(int ID);
     int getNodeNumber();
     int getTrustedNodeNumber();
+    void updateTrustedNodeNumber();
     bool imTrusted();
     bool isTrsuted(int ID);
+    int trustLvl(int ID);
     bool isNetworkComprometed();
     void setNetworkToComprometed();
     int getMaxFD();
@@ -73,8 +77,10 @@ public:
     bool validateMsg(string selfID, string clientID, int syncNumReceived, string MsgToVerify, string MsgSignature);
     bool sendString(int code, int destID, int sourceID, string content = "");
     void sendStringToAll(int code, int sourceID, string content = "");
-    int waitResponses(int resNum);
+    // void sendStringToAllNotSingingContent(int code, int sourceID, string content);
+    int waitResponses(int resNum, int select_time, int sub=0);
     int getTrustedRandomNode();
+    void resetTrustLvl();
     string recvString(int ID);
     // void sendPackage();sendPackage Google buffer, XML
 };

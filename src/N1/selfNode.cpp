@@ -5,9 +5,10 @@ pthread_mutex_t lockFlag = PTHREAD_MUTEX_INITIALIZER;
 selfNode::selfNode(){
 
 };
-selfNode::selfNode(int ID, const char *ip, int port, CryptoPP::RSA::PublicKey pub, CryptoPP::RSA::PrivateKey prv)
+selfNode::selfNode(int ID, const char *ip, int port, CryptoPP::RSA::PublicKey pub, CryptoPP::RSA::PrivateKey prv, string hash)
 : simpleNode(ID, ip, port, pub){ //Call to parent constructor
     selfNode::prv = prv;
+    selfNode::hashHistory.push_front(hash);
 
 }
 

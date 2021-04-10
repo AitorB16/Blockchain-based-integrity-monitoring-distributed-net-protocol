@@ -1,13 +1,13 @@
 #include "server.hpp"
 
-vector<string> recvVectStringSocket(int s)
+vector<string> recvVectStringSocket(int sock)
 {
     vector<string> vs;
-    char buffer[1024];
+    char buffer[2048];
     bzero(buffer, sizeof(buffer));
     try
     {
-        recv(s, buffer, 1024, 0);
+        recv(sock, buffer, 2048, 0);
         vs = splitBuffer(buffer);
         return vs;
     }
@@ -15,6 +15,47 @@ vector<string> recvVectStringSocket(int s)
     {
         std::cerr << e.what() << '\n';
         return vs;
+    }
+}
+
+bool replyStringSocket(int code, simpleNode *sN, int sourceID, int sock, string content)
+{
+
+    string buffer, msg, signedMsg, hexMsg;
+    int syncNum;
+
+    try
+    {
+        //Put msg code
+        // buffer = to_string(code) + ";";
+
+        //Random msg
+        // msg = std::string(random);
+        //Get and increment Sync Number
+        syncNum = sN->getSyncNum();
+        sN->incrementSyncNum();
+
+        //Se especifica MsgID + origen + destino + syncNum
+        msg = to_string(code) + ";" + to_string(sourceID) + ";" + to_string(sN->getID()) + ";" + to_string(syncNum) + ";" + content;
+
+        signedMsg = sign(msg, std::to_string(sourceID));
+        hexMsg = stream2hex(signedMsg);
+        msg = msg + ";" + hexMsg + ";";
+        buffer = msg;
+        if (send(sock, buffer.c_str(), strlen(buffer.c_str()), 0) == -1)
+            cout << "Error sending: " << sN->getID() << endl;
+        else
+        {
+            cout << "Success sending: " << sN->getID() << endl;
+            return true;
+        }
+
+        return false;
+    }
+    catch (const std::exception &e)
+    {
+        std::cerr << e.what() << '\n';
+        return false;
     }
 }
 
@@ -26,13 +67,13 @@ server::server(network *selfNetwork)
     server::selfNetwork = selfNetwork;
 };
 
-struct argStructSimpleNode
+struct argSimplenodeSocket
 {
     simpleNode *sN;
     int s;
 };
 
-struct argStructNetworkAndNode
+struct argNetworkSocket
 {
     network *net;
     int s;
@@ -41,7 +82,7 @@ struct argStructNetworkAndNode
 void *timerThread(void *arg)
 {
 
-    struct argStructSimpleNode *args = (struct argStructSimpleNode *)arg;
+    struct argSimplenodeSocket *args = (struct argSimplenodeSocket *)arg;
     int clientSocket = args->s;
     simpleNode *sN = args->sN;
 
@@ -55,8 +96,8 @@ void *socketThread(void *arg)
 {
     char sendBuffer[1024];
 
-    struct argStructNetworkAndNode *args = (struct argStructNetworkAndNode *)arg;
-    argStructSimpleNode argSimpleNode;
+    struct argNetworkSocket *args = (struct argNetworkSocket *)arg;
+    argSimplenodeSocket argSimpleNode;
 
     int clientSocket = args->s;
     simpleNode *sN;
@@ -69,6 +110,9 @@ void *socketThread(void *arg)
 
     string clientID, selfID, MsgToVerify, MsgSignature, content;
 
+    int susSyncNumReceived, susMsgCode;
+    string suspectID, auditorID, susMsgToVerify, susMsgSignature, susContent;
+
     bool msgValid = false;
 
     while (1)
@@ -78,14 +122,51 @@ void *socketThread(void *arg)
 
         vectString = recvVectStringSocket(clientSocket);
 
-        splitVectString(vectString, msgCode, clientID, selfID, syncNumReceived, MsgToVerify, MsgSignature, content);
+        //Read msgCode
+        msgCode = atoi(vectString.at(0).c_str());
+
+        //Regular cases
+        if (msgCode != 3)
+        {
+            splitVectString(vectString, msgCode, clientID, selfID, syncNumReceived, content, MsgToVerify, MsgSignature);
+        }
+        //Blame case
+        else
+        {
+            //Headers
+            clientID = vectString.at(1);
+            selfID = vectString.at(2);
+            syncNumReceived = atoi(vectString.at(3).c_str());
+
+            //Content
+            susMsgCode = atoi(vectString.at(4).c_str());
+            suspectID = vectString.at(5); //Suspicious ID
+            auditorID = vectString.at(6); //ID of auditor
+            susSyncNumReceived = atoi(vectString.at(7).c_str());
+            susContent = vectString.at(8);      //Conflictive hash
+            susMsgSignature = vectString.at(9); //Signed msg
+            susMsgToVerify = to_string(susMsgCode) + ";" + suspectID + ";" + auditorID + ";" + to_string(susSyncNumReceived) + ";" + susContent;
+
+            //Signature
+            MsgSignature = vectString.at(10);
+            MsgToVerify = to_string(msgCode) + ";" + clientID + ";" + selfID + ";" + to_string(syncNumReceived) + ";" + susMsgToVerify + ";" + susMsgSignature;
+        }
+
+        //If not trusted, close connection
+        if (!net->getNode(atoi(clientID.c_str()))->isTrusted())
+        {
+            //Attempt of message falsification
+            cout << "Disconnected not trusted" << endl;
+            close(clientSocket);
+            pthread_exit(NULL);
+        }
 
         //get connected corresponeded node
         sN = net->getNode(atoi(clientID.c_str()));
 
-        //If msg is not valid, close connection.
         msgValid = net->validateMsg(selfID, clientID, syncNumReceived, MsgToVerify, MsgSignature);
 
+        //If msg is not valid, close connection.
         if (!msgValid)
         {
 
@@ -106,7 +187,6 @@ void *socketThread(void *arg)
 
             //Activar flag usando cerraduras
             sN->setChangeFlag(true);
-            //cout << n->getChangeFlag() <<endl;
 
             //Lanzar thread contador para anular cerradura
             pthread_t tid;
@@ -128,20 +208,82 @@ void *socketThread(void *arg)
         case 1:
             cout << "received" << endl;
 
-            //As we use the same socket -> no problem with faked messages
-            if (verify(MsgToVerify, hex2stream(MsgSignature), clientID))
+            if (sN->getChangeFlag())
             {
-                if (sN->getChangeFlag())
-                {
-                    //Update hash of network node
-                    sN->setCurrentHash(content);
+                //Update hash of network node
+                sN->updateHashList(content);
 
-                    //Desactivar flag usando cerraduras
-                    sN->setChangeFlag(false);
-                }
+                //Desactivar flag usando cerraduras
+                sN->setChangeFlag(false);
             }
 
             //Close connection
+            cout << "Disconnected" << endl;
+            close(clientSocket);
+            pthread_exit(NULL);
+            break;
+        //Audit req
+        case 2:
+            cout << "received" << endl;
+            // net->sendString(2, atoi(clientID.c_str()), atoi(selfID.c_str()), net->getSelfNode()->getCurrentHash());
+            replyStringSocket(2, sN, atoi(selfID.c_str()), clientSocket, net->getSelfNode()->getLastHash());
+            cout << "Disconnected" << endl;
+            close(clientSocket);
+            pthread_exit(NULL);
+            break;
+            //Modify current hash request
+        case 3:
+            //If im the suspicious node, dont do anything
+            if (suspectID == selfID)
+            {
+                cout << "Im being audited" << endl;
+            }
+            //If im not the suspicous node
+            else
+            {
+                //The content isnt on the list
+                if (!net->getNode(atoi(suspectID.c_str()))->isHashRepeated(susContent))
+                {
+                    //Non repudiation from suspicious
+                    if (verify(susMsgToVerify, hex2stream(susMsgSignature), suspectID))
+                    {
+                        //Decrease confidence on suspicious
+                        net->getNode(atoi(suspectID.c_str()))->decreaseTrustLvlIn(DEFAULT_DECREASE_CNT);
+
+                        //Preventive, if I lost this update, decrease confidence on auditor.
+                        //RANDOMIZE MOD 2 = 0 AUDITOR DECREASEMENT
+                        // net->getNode(atoi(auditorID.c_str()))->decreaseTrustLvlIn(DEFAULT_DECREASE_CNT);
+                    }
+                    //Msg faked by auditor
+                    else
+                    {
+                        //Decrease complelty confidence on auditor
+                        net->getNode(atoi(auditorID.c_str()))->decreaseTrustLvlIn(TRUST_LEVEL);
+                    }
+                }
+                //OK the auditor node isnt updated
+                else if (net->getNode(atoi(suspectID.c_str()))->getLastHash() == susContent)
+                {
+                    //Decrease 1 unit confidence on auditor to prevent DDoS
+                    net->getNode(atoi(auditorID.c_str()))->decreaseTrustLvlIn(DEFAULT_DECREASE_CNT);
+
+                    //Enviar mensaje UPDATE_HASH de vuelta
+                    cout << "SEND UPDATE" << net->getNode(atoi(suspectID.c_str()))->getLastHash() << endl;
+                    // cout << susContent << endl;
+                    // replyStringSocket(3, sN, atoi(selfID.c_str()), clientSocket, "UPDATE_HASH");
+                    strcpy(sendBuffer, "UPDATE_HASH");
+                    send(clientSocket, sendBuffer, strlen(sendBuffer), 0);
+                }
+                //Auditor send me an old msg
+                else
+                {
+                    //Decrease complelty confidence on auditor
+                    net->getNode(atoi(auditorID.c_str()))->decreaseTrustLvlIn(DEFAULT_DECREASE_CNT);
+                }
+            }
+            //Close connection
+            //AUDITOR_SELECT_WAIT + 1
+            sleep(3);
             cout << "Disconnected" << endl;
             close(clientSocket);
             pthread_exit(NULL);
@@ -164,7 +306,7 @@ int server::serverUP()
     int max_c = selfNetwork->getNodeNumber(); //At the begining all nodes are trusted
     int addrlen = sizeof(addr);
     int i = 0;
-    argStructNetworkAndNode args;
+    argNetworkSocket args;
 
     pthread_t tid[max_c];
 

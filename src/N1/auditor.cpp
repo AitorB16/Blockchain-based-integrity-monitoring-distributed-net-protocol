@@ -28,9 +28,27 @@ bool waitResponseFromAudited(int sock)
     return false;
 }
 
+struct argNetwork
+{
+    network *net;
+};
+
+void *resetTrustLvlThread(void *arg)
+{
+
+    struct argNetwork *args = (struct argNetwork *)arg;
+    network *net = args->net;
+
+    //Default sleep time
+    sleep(TIME_RESET_TRUST_LVL);
+    net->resetTrustLvl();
+    pthread_exit(NULL);
+}
+
 auditor::auditor(){
 
 };
+
 auditor::auditor(network *selfNetwork)
 {
     auditor::selfNetwork = selfNetwork;
@@ -38,20 +56,49 @@ auditor::auditor(network *selfNetwork)
 
 int auditor::auditorUP()
 {
-    int sock, auditedID, msgCode, syncNumReceived;
+    int sock, auditedID, msgCode, syncNumReceived, numRes;
     string audID, selfID, MsgToVerify, MsgSignature, content, msg;
     bool msgValid;
     vector<string> vs;
     simpleNode *auditedNode;
 
+    argNetwork args;
+    args.net = selfNetwork;
+
+    pthread_t trustThread;
+
+    //For select
+    // struct timeval tv;
+    // tv.tv_sec = AUDITOR_SELECT_WAIT;
+    // tv.tv_usec = 0;
+
+    // fd_set readfds;
+
+    if (pthread_create(&trustThread, NULL, resetTrustLvlThread, (void *)&args) != 0)
+    {
+        printf("Error");
+        exit(1);
+    }
+
     while (1)
     {
+        //Update trusted node number
+        selfNetwork->updateTrustedNodeNumber();
+
         // sleep(DEF_TIMER_AUDIT);
+        sleep(DEF_TIMER_AUDIT);
 
         //If network not trusted, kill thread
         //return -1;
 
         auditedID = selfNetwork->getTrustedRandomNode();
+        //No nodes are trusted
+        if (auditedID == -1)
+        {
+            selfNetwork->setNetworkToComprometed();
+            cout << "STOPPING AUDITOR, NO TRUSTED NODES LEFT; NETWORK COMPROMETED";
+            break;
+        }
         auditedNode = selfNetwork->getNode(auditedID);
 
         msgValid = false;
@@ -61,35 +108,111 @@ int auditor::auditorUP()
             if (selfNetwork->sendString(2, auditedID, selfNetwork->getID()))
             {
                 sock = auditedNode->getSock();
-                //Node responds
-                if (waitResponseFromAudited(sock))
+                //Response from node
+
+                //We need a countback
+                // select(sock....)
+
+                // if (select(sock + 1, &readfds, NULL, NULL, &tv) == 0)
+                // {
+                //     auditedNode->decreaseTrustLvlIn(TRUST_LEVEL);
+                //     selfNetwork->reassembleSocket(auditedID);
+                //     cout << "AAAA" << endl;
+                // }
+                // else
+                // {
+                try
                 {
-                    //We trust the connection?
                     msg = selfNetwork->recvString(auditedID);
+
                     vs = splitBuffer(msg.c_str());
-                    splitVectString(vs, msgCode, audID, selfID, syncNumReceived, MsgToVerify, MsgSignature, content);
+
+                    splitVectString(vs, msgCode, audID, selfID, syncNumReceived, content, MsgToVerify, MsgSignature);
                     msgValid = selfNetwork->validateMsg(selfID, audID, syncNumReceived, MsgToVerify, MsgSignature);
-                    if (!msgValid)
+
+                    // cout << content << endl;
+                    if (!msgValid) //Or node doesnt answer
                     {
 
                         //Attempt of message falsification
                         cout << "Disconnected message was faked" << endl;
-                        // close(clientSocket);
-                        // pthread_exit(NULL);
+                        //Decrease confidence in node
+                        auditedNode->decreaseTrustLvlIn(DEFAULT_DECREASE_CNT);
+                        selfNetwork->reassembleSocket(auditedID);
+                    }
+                    //Something valid is received
+                    else
+                    {
+                        selfNetwork->reassembleSocket(auditedID);
+
+                        //If content is valid and current OK
+                        if (content == auditedNode->getLastHash())
+                        {
+                            cout << auditedID << " is OK" << endl;
+                        }
+                        //If content isnt the last, no trust on current node
+                        else if (auditedNode->isHashRepeated(content))
+                        {
+                            auditedNode->decreaseTrustLvlIn(TRUST_LEVEL);
+                        }
+                        //If content is new, blame node.
+                        else
+                        {
+                            //BCAST TO OTHER NODES
+                            if (!selfNetwork->isNetworkComprometed())
+                            {
+                                //Connect to ALL
+                                selfNetwork->connectToAllNodes();
+
+                                //Send just to connected nodes
+                                msg = MsgToVerify + ";" + MsgSignature;
+                                // cout << msg << endl;
+                                selfNetwork->sendStringToAll(3, selfNetwork->getID(), msg);
+
+                                //Wait 2/3 of network to send OK Select; timeout 30sec
+                                
+                                //PROBLEMS HERE
+                                numRes = selfNetwork->waitResponses(selfNetwork->getTrustedNodeNumber() * THRESHOLD, AUDITOR_SELECT_WAIT);
+                                // numRes -= selfNetwork->getTrustedNodeNumber() + 1;
+                                // numRes = selfNetwork->receiveFromAll(selfNetwork->getTrustedNodeNumber() * THRESHOLD, "UPDATE_HASH");
+                                
+
+                                cout << "NUM RES: " << numRes << endl;
+
+                                //The network answers if hash value is valid and last.
+                                if (numRes >= selfNetwork->getTrustedNodeNumber() * THRESHOLD)
+                                {
+                                    cout << "Hash corrected" << endl;
+                                    auditedNode->updateHashList(content);
+                                }
+                                //The network doesnt answer if value doesnt need to be updated
+                                else
+                                {
+                                    cout << "Blame ended successfully" << endl;
+                                    auditedNode->decreaseTrustLvlIn(DEFAULT_DECREASE_CNT);
+                                }
+
+                                //Close connection
+                                selfNetwork->reassembleAllSockets();
+                            }
+                        }
                     }
                 }
+                //Catch error from recv
+                catch (const std::exception &e)
+                {
+                    auditedNode->decreaseTrustLvlIn(TRUST_LEVEL);
+                    selfNetwork->reassembleSocket(auditedID);
+                    cout << "Node doesnt trust me" << endl;
+                }
+                // }
             }
         }
-        selfNetwork->reassembleSocket(auditedID);
-
-        //recv
-
-        //Send to all except x.
-
-        //Close connection
-        // net->reassembleSocket(auditedID);
-
-        sleep(1);
+        //Error connecting to audited node.
+        else
+        {
+            auditedNode->decreaseTrustLvlIn(DEFAULT_DECREASE_CNT);
+        }
     }
     return 0;
 }

@@ -3,8 +3,9 @@
 
 #include "network.hpp"
 
-#define DEF_TIMER_AUDIT 60*5 //seconds
-#define AUDITOR_SELECT_WAIT 5 //seconds
+#define DEF_TIMER_AUDIT 5//60*5 //seconds
+#define AUDITOR_SELECT_WAIT 2 //seconds
+#define TIME_RESET_TRUST_LVL 120 //seconds
 
 class auditor
 {

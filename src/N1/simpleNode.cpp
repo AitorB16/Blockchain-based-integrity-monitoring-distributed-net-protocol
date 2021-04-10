@@ -3,6 +3,8 @@ using namespace std;
 
 pthread_mutex_t lockChangeFlag = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t lockConnected = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t lockTrustLvl = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t lockSyncNum = PTHREAD_MUTEX_INITIALIZER;
 // pthread_mutex_t lockSyncNum = PTHREAD_MUTEX_INITIALIZER;
 
 simpleNode::simpleNode(){
@@ -19,6 +21,7 @@ simpleNode::simpleNode(int ID, const char *ip, int port, CryptoPP::RSA::PublicKe
     simpleNode::changeFlag = false;
     simpleNode::connected = false;
     simpleNode::pub = pub;
+    simpleNode::hashHistory.push_front("c54008913c9085a5a5b322e1f8eb050b843874c5d00811e1bfba2e9bbbb15a4b");
     // simpleNode::hash_record.push_back(hash_record);
 }
 
@@ -54,29 +57,72 @@ sockaddr_in simpleNode::getAddr()
 {
     return simpleNode::addr;
 }
-string simpleNode::getCurrentHash()
+string simpleNode::getLastHash()
 {
-    return currentHash;
+    return hashHistory.front();
 }
-void simpleNode::setCurrentHash(string hash)
+void simpleNode::updateHashList(string hash)
 {
-    currentHash = hash;
+    hashHistory.push_front(hash);
+}
+bool simpleNode::isHashRepeated(string hash)
+{
+    for (auto const &i : hashHistory)
+    {
+        if (i == hash)
+        {
+            return true;
+        }
+    }
+    return false;
 }
 int simpleNode::getSyncNum()
 {
-    return syncNum;
+    int tmpSyncNum;
+    pthread_mutex_lock(&lockSyncNum);
+    tmpSyncNum = syncNum;
+    pthread_mutex_unlock(&lockSyncNum);
+    return tmpSyncNum;
 }
 void simpleNode::incrementSyncNum()
 {
+    pthread_mutex_lock(&lockSyncNum);
     syncNum++;
+    pthread_mutex_unlock(&lockSyncNum);
 }
 
 bool simpleNode::isTrusted()
 {
-    if (trustLvl > 0)
+    int tmpTrustLvl;
+    pthread_mutex_lock(&lockTrustLvl);
+    tmpTrustLvl = trustLvl;
+    pthread_mutex_unlock(&lockTrustLvl);
+    if (tmpTrustLvl > 0)
         return true;
     else
         return false;
+}
+int simpleNode::getTrustLvl()
+{
+    int tmpTrustLvl;
+    pthread_mutex_lock(&lockTrustLvl);
+    tmpTrustLvl = trustLvl;
+    pthread_mutex_unlock(&lockTrustLvl);
+    return tmpTrustLvl;
+}
+void simpleNode::decreaseTrustLvlIn(int sub)
+{
+    pthread_mutex_lock(&lockTrustLvl);
+    trustLvl -= sub;
+    pthread_mutex_unlock(&lockTrustLvl);
+}
+void simpleNode::resetTrustLvl()
+{
+    pthread_mutex_lock(&lockTrustLvl);
+    //only if trusted
+    if (trustLvl > 0)
+        trustLvl = TRUST_LEVEL;
+    pthread_mutex_unlock(&lockTrustLvl);
 }
 
 bool simpleNode::isConnected()
@@ -125,7 +171,7 @@ int simpleNode::estConnection()
     }
 }
 
-int simpleNode::sendString(const char *codigo)
+int simpleNode::sendString(const char *buffer)
 {
     //Igual no necesario -1
     bool tmpConnected;
@@ -134,7 +180,7 @@ int simpleNode::sendString(const char *codigo)
     pthread_mutex_unlock(&lockConnected);
     if (tmpConnected)
     {
-        return send(sock, codigo, strlen(codigo), 0);
+        return send(sock, buffer, strlen(buffer), 0);
     }
     else
     {
@@ -144,11 +190,11 @@ int simpleNode::sendString(const char *codigo)
 
 string simpleNode::recvString()
 {
-    char buffer[1024];
+    char buffer[2048];
 
-    bzero(buffer, 1024);
+    bzero(buffer, 2048);
 
-    if (recv(sock, buffer, 1024, 0) < 0)
+    if (recv(sock, buffer, 2048, 0) < 0)
     {
         printf("[-]Error in receiving data.\n");
         return "";

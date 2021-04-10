@@ -24,6 +24,7 @@
 #include "crypto.hpp"
 
 #define TRUST_LEVEL 5
+#define DEFAULT_DECREASE_CNT 1
 
 class simpleNode
 {
@@ -38,7 +39,8 @@ protected:
     bool changeFlag;
     bool connected;
     CryptoPP::RSA::PublicKey pub;
-    std::string currentHash;
+    // std::string currentHash;
+    list<string> hashHistory;
 
 public:
     simpleNode();
@@ -49,15 +51,19 @@ public:
     void setChangeFlag(bool flagValue);
     int getSock();
     sockaddr_in getAddr();
-    string getCurrentHash();
-    void setCurrentHash(string hash);
+    string getLastHash();
+    void updateHashList(string hash);
+    bool isHashRepeated(string hash);
     int getSyncNum();
     void incrementSyncNum();
     bool isTrusted();
+    int getTrustLvl();
+    void decreaseTrustLvlIn(int sub);
+    void resetTrustLvl();
     bool isConnected();
     void createClientSocket();
     int estConnection();
-    int sendString(const char *codigo);
+    int sendString(const char *buffer);
     string recvString();
 
 };

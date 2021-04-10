@@ -10,11 +10,11 @@ protected:
 
 public:
     selfNode();
-    selfNode(int ID, const char *ip, int port, CryptoPP::RSA::PublicKey pub, CryptoPP::RSA::PrivateKey prv);
+    selfNode(int ID, const char *ip, int port, CryptoPP::RSA::PublicKey pub, CryptoPP::RSA::PrivateKey prv, string hash);
     void createServerSocket();
-    int sendString(const char *codigo);
-    int recvString(const char *servResponse);
-    int serverUP(int max_c);
+    // int sendString(const char *codigo);
+    // int recvString(const char *servResponse);
+    // int serverUP(int max_c);
 };
 
 #endif

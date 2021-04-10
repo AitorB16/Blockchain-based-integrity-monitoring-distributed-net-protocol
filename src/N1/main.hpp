@@ -18,6 +18,4 @@
 #include "crypto.hpp"
 #include "utils.hpp"
 
-#define THRESHOLD 2/3
-
 int main();

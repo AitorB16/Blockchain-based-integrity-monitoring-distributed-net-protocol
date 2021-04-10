@@ -98,23 +98,22 @@ int get_randomNumber(int maxNum)
     int fd = open("/dev/urandom", O_RDONLY);
     read(fd, buffer, 1);
     close(fd);
-    num = (int) buffer[0];
+    num = (int)buffer[0];
     num = num % maxNum;
     return num;
 }
 
-void splitVectString(vector<string> vectString, int &msgCode, string &clientID, string &selfID, int &syncNumReceived, string &MsgToVerify, string &MsgSignature, string &content)
+void splitVectString(vector<string> vectString, int &msgCode, string &clientID, string &selfID, int &syncNumReceived, string &content, string &MsgToVerify, string &MsgSignature)
 {
 
     msgCode = atoi(vectString.at(0).c_str());         //MSG CODE
     clientID = vectString.at(1);                      //Source ID
     selfID = vectString.at(2);                        //ID of current server
     syncNumReceived = atoi(vectString.at(3).c_str()); //SyncNum
+    content = vectString.at(4);                       //Payload of the msg
+    MsgSignature = vectString.at(5);                  //Msg signed
 
-    MsgToVerify = clientID + ";" + selfID + ";" + vectString.at(3); //RandomMsg !!TENER EN CUENTA QUE EL ID DEL SERVER ESTA FIRMADO JUNTO CON LOS CARACTERES ALEATORIOS
-
-    MsgSignature = vectString.at(4); //RandomMsg signed
-    content = vectString.at(5);      //Payload of the msg
+    MsgToVerify = to_string(msgCode) + ";" + clientID + ";" + selfID + ";" + to_string(syncNumReceived) + ";" + content; //RandomMsg !!TENER EN CUENTA QUE EL ID DEL SERVER ESTA FIRMADO JUNTO CON LOS CARACTERES ALEATORIOS
 }
 
 // void validateMsg(network *net, string selfID, string clientID, int syncNumStored, int syncNumReceived, simpleNode *sN, string MsgToVerify, string MsgSignature, int clientSocket)
