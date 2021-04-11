@@ -3,11 +3,11 @@
 vector<string> recvVectStringSocket(int sock)
 {
     vector<string> vs;
-    char buffer[2048];
+    char buffer[4096];
     bzero(buffer, sizeof(buffer));
     try
     {
-        recv(sock, buffer, 2048, 0);
+        recv(sock, buffer, 4096, 0);
         vs = splitBuffer(buffer);
         return vs;
     }
@@ -26,12 +26,6 @@ bool replyStringSocket(int code, simpleNode *sN, int sourceID, int sock, string 
 
     try
     {
-        //Put msg code
-        // buffer = to_string(code) + ";";
-
-        //Random msg
-        // msg = std::string(random);
-        //Get and increment Sync Number
         syncNum = sN->getSyncNum();
         sN->incrementSyncNum();
 
@@ -87,14 +81,16 @@ void *timerThread(void *arg)
     simpleNode *sN = args->sN;
 
     //Default sleep time
-    sleep(DEF_TIMER_WAIT);
+    sleep(DEF_TIMER_WAIT - 2);
     sN->setChangeFlag(false);
+
+    close(clientSocket);
     pthread_exit(NULL);
 }
 
 void *socketThread(void *arg)
 {
-    char sendBuffer[1024];
+    char sendBuffer[4096];
 
     struct argNetworkSocket *args = (struct argNetworkSocket *)arg;
     argSimplenodeSocket argSimpleNode;
@@ -123,33 +119,23 @@ void *socketThread(void *arg)
         vectString = recvVectStringSocket(clientSocket);
 
         //Read msgCode
-        msgCode = atoi(vectString.at(0).c_str());
+        // msgCode = atoi(vectString.at(0).c_str());
 
-        //Regular cases
-        if (msgCode != 3)
+        if (vectString.size() == 6)
         {
             splitVectString(vectString, msgCode, clientID, selfID, syncNumReceived, content, MsgToVerify, MsgSignature);
         }
         //Blame case
+        else if (vectString.size() == 11)
+        {
+            splitVectStringBlame(vectString, msgCode, clientID, selfID, syncNumReceived, susMsgCode, suspectID, auditorID, susSyncNumReceived, susContent, susMsgSignature, susMsgToVerify, MsgSignature, MsgToVerify);
+        }
         else
         {
-            //Headers
-            clientID = vectString.at(1);
-            selfID = vectString.at(2);
-            syncNumReceived = atoi(vectString.at(3).c_str());
-
-            //Content
-            susMsgCode = atoi(vectString.at(4).c_str());
-            suspectID = vectString.at(5); //Suspicious ID
-            auditorID = vectString.at(6); //ID of auditor
-            susSyncNumReceived = atoi(vectString.at(7).c_str());
-            susContent = vectString.at(8);      //Conflictive hash
-            susMsgSignature = vectString.at(9); //Signed msg
-            susMsgToVerify = to_string(susMsgCode) + ";" + suspectID + ";" + auditorID + ";" + to_string(susSyncNumReceived) + ";" + susContent;
-
-            //Signature
-            MsgSignature = vectString.at(10);
-            MsgToVerify = to_string(msgCode) + ";" + clientID + ";" + selfID + ";" + to_string(syncNumReceived) + ";" + susMsgToVerify + ";" + susMsgSignature;
+            //Someones is connecting fakely
+            cout << "Disconnected not valid" << endl;
+            close(clientSocket);
+            pthread_exit(NULL);
         }
 
         //If not trusted, close connection
@@ -197,16 +183,17 @@ void *socketThread(void *arg)
             //pthread_join(tid, NULL);
 
             //Enviar mensaje ACK de vuelta
-            strcpy(sendBuffer, "ACK");
-            send(clientSocket, sendBuffer, strlen(sendBuffer), 0);
-            cout << "SENT" << endl;
+            // strcpy(sendBuffer, "ACK");
+            // send(clientSocket, sendBuffer, strlen(sendBuffer), 0);
 
-            //Dont close connection, we spect to receive the new hash from same node
+            close(clientSocket);
+            pthread_exit(NULL);
+            // cout << "SENT" << endl;
             break;
 
         //Update hash of simpleNode
         case 1:
-            cout << "received" << endl;
+            // cout << "received" << endl;
 
             if (sN->getChangeFlag())
             {
@@ -218,20 +205,19 @@ void *socketThread(void *arg)
             }
 
             //Close connection
-            cout << "Disconnected" << endl;
+            // cout << "Disconnected" << endl;
             close(clientSocket);
             pthread_exit(NULL);
             break;
         //Audit req
         case 2:
-            cout << "received" << endl;
-            // net->sendString(2, atoi(clientID.c_str()), atoi(selfID.c_str()), net->getSelfNode()->getCurrentHash());
+            // cout << "received" << endl;
             replyStringSocket(2, sN, atoi(selfID.c_str()), clientSocket, net->getSelfNode()->getLastHash());
-            cout << "Disconnected" << endl;
+            // cout << "Disconnected" << endl;
             close(clientSocket);
             pthread_exit(NULL);
             break;
-            //Modify current hash request
+        //Blame
         case 3:
             //If im the suspicious node, dont do anything
             if (suspectID == selfID)
@@ -251,14 +237,15 @@ void *socketThread(void *arg)
                         net->getNode(atoi(suspectID.c_str()))->decreaseTrustLvlIn(DEFAULT_DECREASE_CNT);
 
                         //Preventive, if I lost this update, decrease confidence on auditor.
-                        //RANDOMIZE MOD 2 = 0 AUDITOR DECREASEMENT
-                        // net->getNode(atoi(auditorID.c_str()))->decreaseTrustLvlIn(DEFAULT_DECREASE_CNT);
+                        //MAKE DE AUDITOR DECREASE AT 1/2 SPEED OF SUSPECT
+                        if (get_randomNumber(2) == 0)
+                            net->getNode(atoi(auditorID.c_str()))->decreaseTrustLvlIn(DEFAULT_DECREASE_CNT);
                     }
                     //Msg faked by auditor
                     else
                     {
-                        //Decrease complelty confidence on auditor
-                        net->getNode(atoi(auditorID.c_str()))->decreaseTrustLvlIn(TRUST_LEVEL);
+                        //Decrease confidence on auditor
+                        net->getNode(atoi(auditorID.c_str()))->decreaseTrustLvlIn(DEFAULT_DECREASE_CNT);
                     }
                 }
                 //OK the auditor node isnt updated
@@ -268,16 +255,14 @@ void *socketThread(void *arg)
                     net->getNode(atoi(auditorID.c_str()))->decreaseTrustLvlIn(DEFAULT_DECREASE_CNT);
 
                     //Enviar mensaje UPDATE_HASH de vuelta
-                    cout << "SEND UPDATE" << net->getNode(atoi(suspectID.c_str()))->getLastHash() << endl;
-                    // cout << susContent << endl;
-                    // replyStringSocket(3, sN, atoi(selfID.c_str()), clientSocket, "UPDATE_HASH");
+                    // cout << "SEND UPDATE " << net->getNode(atoi(suspectID.c_str()))->getLastHash() << endl;
                     strcpy(sendBuffer, "UPDATE_HASH");
                     send(clientSocket, sendBuffer, strlen(sendBuffer), 0);
                 }
                 //Auditor send me an old msg
                 else
                 {
-                    //Decrease complelty confidence on auditor
+                    //Decrease confidence on auditor
                     net->getNode(atoi(auditorID.c_str()))->decreaseTrustLvlIn(DEFAULT_DECREASE_CNT);
                 }
             }
@@ -318,12 +303,14 @@ int server::serverUP()
 
     while (1)
     {
+
         //Se debería analizar la identidad de conexiones para evitar DDoS
         newSocket = accept(sock, (struct sockaddr *)&addr, (socklen_t *)&addrlen);
+
         if (newSocket < 0)
             return -1;
 
-        printf("Connection accepted from %s:%d\n", inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
+        // printf("Connection accepted from %s:%d\n", inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
         args.net = selfNetwork;
         args.s = newSocket;
 
@@ -341,8 +328,26 @@ int server::serverUP()
             }
             i = 0;
         }
+        //In case network comprometed, end loop
+        if (selfNetwork->isNetworkComprometed())
+        {
+            break;
+        }
     }
 
-    close(newSocket);
-    return 0;
+    close(sock);
+
+    //Wait all active connections to close.
+    // i = 0;
+    // while (i < max_c)
+    // {
+    //     pthread_join(tid[i++], NULL);
+    // }
+
+    //Destroy thread
+    cout << "SERVER STOPPED" << endl;
+    sleep(DEF_TIMER_WAIT);
+    pthread_exit(NULL);
+
+    // return 0;
 }

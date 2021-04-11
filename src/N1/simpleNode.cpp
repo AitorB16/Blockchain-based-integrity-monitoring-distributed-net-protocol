@@ -190,17 +190,34 @@ int simpleNode::sendString(const char *buffer)
 
 string simpleNode::recvString()
 {
-    char buffer[2048];
+    char buffer[4096];
 
-    bzero(buffer, 2048);
+    bzero(buffer, 4096);
 
-    if (recv(sock, buffer, 2048, 0) < 0)
+    //SELECT
+    struct timeval tv;
+    tv.tv_sec = 1;
+    tv.tv_usec = 0;
+
+    int selectStatus;
+    fd_set fdSet;
+    FD_ZERO(&fdSet);
+    FD_SET(sock, &fdSet);
+
+    if (0 < select(sock + 1, &fdSet, NULL, NULL, &tv))
     {
-        printf("[-]Error in receiving data.\n");
-        return "";
+        if (recv(sock, buffer, 4096, 0) < 0)
+        {
+            // printf("[-]Error in receiving data.\n");
+            return "";
+        }
+        else
+        {
+            return buffer;
+        }
     }
     else
     {
-        return buffer;
+        return "";
     }
 }

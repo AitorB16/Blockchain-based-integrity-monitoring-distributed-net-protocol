@@ -89,6 +89,12 @@ int auditor::auditorUP()
         sleep(DEF_TIMER_AUDIT);
 
         //If network not trusted, kill thread
+        if (selfNetwork->isNetworkComprometed())
+        {
+            cout << "STOPPING AUDITOR, NETWORK COMPROMETED" << endl;
+            return -1;
+        }
+
         //return -1;
 
         auditedID = selfNetwork->getTrustedRandomNode();
@@ -96,8 +102,9 @@ int auditor::auditorUP()
         if (auditedID == -1)
         {
             selfNetwork->setNetworkToComprometed();
-            cout << "STOPPING AUDITOR, NO TRUSTED NODES LEFT; NETWORK COMPROMETED";
-            break;
+            //SET ALL nodes to no trust
+            cout << "STOPPING AUDITOR, NO TRUSTED NODES LEFT; NETWORK COMPROMETED" << endl;
+            return -1;
         }
         auditedNode = selfNetwork->getNode(auditedID);
 
@@ -159,49 +166,45 @@ int auditor::auditorUP()
                         else
                         {
                             //BCAST TO OTHER NODES
-                            if (!selfNetwork->isNetworkComprometed())
+                            //Connect to ALL
+                            selfNetwork->connectToAllNodes();
+
+                            //Send just to connected nodes
+                            msg = MsgToVerify + ";" + MsgSignature;
+                            // cout << msg << endl;
+                            selfNetwork->sendStringToAll(3, selfNetwork->getID(), msg);
+
+                            //Wait 2/3 of network to send OK Select; timeout 30sec
+
+                            //PROBLEMS HERE
+                            numRes = selfNetwork->waitResponses(selfNetwork->getTrustedNodeNumber() * THRESHOLD, AUDITOR_SELECT_WAIT);
+                            // numRes -= selfNetwork->getTrustedNodeNumber() + 1;
+                            // numRes = selfNetwork->receiveFromAll(selfNetwork->getTrustedNodeNumber() * THRESHOLD, "UPDATE_HASH");
+
+                            cout << "NUM RES: " << numRes << endl;
+
+                            //The network answers if hash value is valid and last.
+                            if (numRes >= selfNetwork->getTrustedNodeNumber() * THRESHOLD)
                             {
-                                //Connect to ALL
-                                selfNetwork->connectToAllNodes();
-
-                                //Send just to connected nodes
-                                msg = MsgToVerify + ";" + MsgSignature;
-                                // cout << msg << endl;
-                                selfNetwork->sendStringToAll(3, selfNetwork->getID(), msg);
-
-                                //Wait 2/3 of network to send OK Select; timeout 30sec
-                                
-                                //PROBLEMS HERE
-                                numRes = selfNetwork->waitResponses(selfNetwork->getTrustedNodeNumber() * THRESHOLD, AUDITOR_SELECT_WAIT);
-                                // numRes -= selfNetwork->getTrustedNodeNumber() + 1;
-                                // numRes = selfNetwork->receiveFromAll(selfNetwork->getTrustedNodeNumber() * THRESHOLD, "UPDATE_HASH");
-                                
-
-                                cout << "NUM RES: " << numRes << endl;
-
-                                //The network answers if hash value is valid and last.
-                                if (numRes >= selfNetwork->getTrustedNodeNumber() * THRESHOLD)
-                                {
-                                    cout << "Hash corrected" << endl;
-                                    auditedNode->updateHashList(content);
-                                }
-                                //The network doesnt answer if value doesnt need to be updated
-                                else
-                                {
-                                    cout << "Blame ended successfully" << endl;
-                                    auditedNode->decreaseTrustLvlIn(DEFAULT_DECREASE_CNT);
-                                }
-
-                                //Close connection
-                                selfNetwork->reassembleAllSockets();
+                                cout << "Hash corrected" << endl;
+                                auditedNode->updateHashList(content);
                             }
+                            //The network doesnt answer if value doesnt need to be updated
+                            else
+                            {
+                                cout << "Blame ended successfully" << endl;
+                                auditedNode->decreaseTrustLvlIn(DEFAULT_DECREASE_CNT);
+                            }
+
+                            //Close connection
+                            selfNetwork->reassembleAllSockets();
                         }
                     }
                 }
                 //Catch error from recv
                 catch (const std::exception &e)
                 {
-                    auditedNode->decreaseTrustLvlIn(TRUST_LEVEL);
+                    auditedNode->decreaseTrustLvlIn(DEFAULT_DECREASE_CNT);
                     selfNetwork->reassembleSocket(auditedID);
                     cout << "Node doesnt trust me" << endl;
                 }

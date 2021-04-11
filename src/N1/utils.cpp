@@ -116,6 +116,28 @@ void splitVectString(vector<string> vectString, int &msgCode, string &clientID, 
     MsgToVerify = to_string(msgCode) + ";" + clientID + ";" + selfID + ";" + to_string(syncNumReceived) + ";" + content; //RandomMsg !!TENER EN CUENTA QUE EL ID DEL SERVER ESTA FIRMADO JUNTO CON LOS CARACTERES ALEATORIOS
 }
 
+void splitVectStringBlame(vector<string> vectString, int &msgCode, string &clientID, string &selfID, int &syncNumReceived, int &susMsgCode, string &suspectID, string &auditorID, int &susSyncNumReceived, string &susContent, string &susMsgSignature, string &susMsgToVerify, string &MsgSignature, string &MsgToVerify)
+{
+    //Headers
+    msgCode = atoi(vectString.at(0).c_str());
+    clientID = vectString.at(1);
+    selfID = vectString.at(2);
+    syncNumReceived = atoi(vectString.at(3).c_str());
+
+    //Content
+    susMsgCode = atoi(vectString.at(4).c_str());
+    suspectID = vectString.at(5); //Suspicious ID
+    auditorID = vectString.at(6); //ID of auditor
+    susSyncNumReceived = atoi(vectString.at(7).c_str());
+    susContent = vectString.at(8);      //Conflictive hash
+    susMsgSignature = vectString.at(9); //Signed msg
+    susMsgToVerify = to_string(susMsgCode) + ";" + suspectID + ";" + auditorID + ";" + to_string(susSyncNumReceived) + ";" + susContent;
+
+    //Signature
+    MsgSignature = vectString.at(10);
+    MsgToVerify = to_string(msgCode) + ";" + clientID + ";" + selfID + ";" + to_string(syncNumReceived) + ";" + susMsgToVerify + ";" + susMsgSignature;
+}
+
 // void validateMsg(network *net, string selfID, string clientID, int syncNumStored, int syncNumReceived, simpleNode *sN, string MsgToVerify, string MsgSignature, int clientSocket)
 // {
 //     //Verify if msg is for me

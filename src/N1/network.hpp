@@ -78,7 +78,7 @@ public:
     bool sendString(int code, int destID, int sourceID, string content = "");
     void sendStringToAll(int code, int sourceID, string content = "");
     // void sendStringToAllNotSingingContent(int code, int sourceID, string content);
-    int waitResponses(int resNum, int select_time, int sub=0);
+    int waitResponses(int resNum, int select_time);
     int getTrustedRandomNode();
     void resetTrustLvl();
     string recvString(int ID);

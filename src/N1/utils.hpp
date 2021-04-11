@@ -21,4 +21,6 @@ string gen_random(const int len);
 char * gen_urandom(int len);
 int get_randomNumber(int maxNum);
 void splitVectString(vector<string> vectString, int &msgCode, string &clientID, string &selfID, int &syncNumReceived, string &content, string &MsgToVerify, string &MsgSignature);
+void splitVectStringBlame(vector<string> vectString, int &msgCode, string &clientID, string &selfID, int &syncNumReceived, int &susMsgCode, string &suspectID, string &auditorID, int &susSyncNumReceived, string &susContent, string &susMsgSignature, string &susMsgToVerify, string &MsgSignature, string &MsgToVerify);
+
 #endif

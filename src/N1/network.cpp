@@ -3,7 +3,9 @@
 using namespace rapidxml;
 using namespace std;
 
-pthread_mutex_t lockMsgList = PTHREAD_MUTEX_INITIALIZER;
+// pthread_mutex_t lockMsgList = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t lockNetworkComprometed = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t lockTrustedNodeNumber = PTHREAD_MUTEX_INITIALIZER;
 
 network *network::instance = 0;
 
@@ -110,7 +112,11 @@ int network::getNodeNumber()
 }
 int network::getTrustedNodeNumber()
 {
-    return trustedNodeNumber;
+    int tmpTrustedNodeNumber = 0;
+    pthread_mutex_lock(&lockTrustedNodeNumber);
+    tmpTrustedNodeNumber = trustedNodeNumber;
+    pthread_mutex_unlock(&lockTrustedNodeNumber);
+    return tmpTrustedNodeNumber;
 }
 
 void network::updateTrustedNodeNumber()
@@ -121,7 +127,9 @@ void network::updateTrustedNodeNumber()
         if (i->isTrusted())
             tmpTrustNum++;
     }
+    pthread_mutex_lock(&lockTrustedNodeNumber);
     trustedNodeNumber = tmpTrustNum;
+    pthread_mutex_unlock(&lockTrustedNodeNumber);
 }
 
 bool network::imTrusted()
@@ -148,11 +156,17 @@ int network::trustLvl(int ID)
 }
 bool network::isNetworkComprometed()
 {
-    return networkComprometed;
+    bool tmpNetworkComprometed = false;
+    pthread_mutex_lock(&lockNetworkComprometed);
+    tmpNetworkComprometed = networkComprometed;
+    pthread_mutex_unlock(&lockNetworkComprometed);
+    return tmpNetworkComprometed;
 }
 void network::setNetworkToComprometed()
 {
+    pthread_mutex_lock(&lockNetworkComprometed);
     networkComprometed = true;
+    pthread_mutex_unlock(&lockNetworkComprometed);
 }
 int network::getMaxFD()
 {
@@ -208,7 +222,7 @@ void network::connectToAllNodes()
             {
                 if (i->estConnection() == -1)
                 {
-                    cout << "Error connection: " << i->getID() << endl;
+                    // cout << "Error connection: " << i->getID() << endl;
                     //Decrease confidence if node is not avalible
                     i->decreaseTrustLvlIn(DEFAULT_DECREASE_CNT);
                 }
@@ -218,7 +232,7 @@ void network::connectToAllNodes()
                     FD_SET(i->getSock(), &readfds);
                     if (i->getSock() > maxFD)
                         maxFD = i->getSock();
-                    cout << "Success connection: " << i->getID() << endl;
+                    // cout << "Success connection: " << i->getID() << endl;
                 }
             }
         }
@@ -241,13 +255,13 @@ bool network::connectToNode(int ID)
                 {
                     if (i->estConnection() == -1)
                     {
-                        cout << "Error connection: " << i->getID() << endl;
+                        // cout << "Error connection: " << i->getID() << endl;
                         //Decrease confidence if node is not avalible
                         i->decreaseTrustLvlIn(DEFAULT_DECREASE_CNT);
                     }
                     else
                     {
-                        cout << "Success connection: " << ID << endl;
+                        // cout << "Success connection: " << ID << endl;
                         return true;
                     }
                 }
@@ -351,7 +365,7 @@ bool network::sendString(int code, int destID, int sourceID, string content)
                     cout << "Error sending: " << i->getID() << endl;
                 else
                 {
-                    cout << "Success sending: " << destID << endl;
+                    // cout << "Success sending: " << destID << endl;
                     i->incrementSyncNum();
                     return true;
                 }
@@ -399,7 +413,7 @@ void network::sendStringToAll(int code, int sourceID, string content)
                     cout << "Error sending: " << i->getID() << endl;
                 else
                 {
-                    cout << "Success sending: " << i->getID() << endl;
+                    // cout << "Success sending: " << i->getID() << endl;
                     i->incrementSyncNum();
                 }
             }
@@ -454,7 +468,7 @@ void network::sendStringToAll(int code, int sourceID, string content)
 //     }
 // }
 
-int network::waitResponses(int resNum, int select_time, int sub)
+int network::waitResponses(int resNum, int select_time)
 {
     struct timeval tv;
     tv.tv_sec = select_time;
@@ -470,7 +484,7 @@ int network::waitResponses(int resNum, int select_time, int sub)
     while (1)
     {
         //just monitorize trusted sockets; low-eq maxFD descriptor
-        selectStatus = select(maxFD + 1 - sub, &readfds, NULL, NULL, &tv);
+        selectStatus = select(maxFD + 1, &readfds, NULL, NULL, &tv);
         //
         counter += selectStatus;
 

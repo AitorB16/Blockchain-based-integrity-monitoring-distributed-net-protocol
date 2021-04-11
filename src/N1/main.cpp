@@ -71,7 +71,7 @@ int main(void)
     int option;
 
     std::string buffer, response;
-    
+
     string input;
     int dest;
 
@@ -103,6 +103,8 @@ int main(void)
         case 2:
             if (!net->isNetworkComprometed())
             {
+                //DESACTIVATE AUDITOR TEMPORALY?
+                
                 //Connect to ALL
                 net->connectToAllNodes();
 
@@ -118,6 +120,9 @@ int main(void)
 
                 if (numRes >= net->getTrustedNodeNumber() * THRESHOLD)
                 {
+                    net->reassembleAllSockets();
+                    net->connectToAllNodes();
+
                     //Send hash
                     net->sendStringToAll(1, net->getID(), net->getSelfNode()->getLastHash());
 
