@@ -77,14 +77,16 @@ void *timerThread(void *arg)
 {
 
     struct argSimplenodeSocket *args = (struct argSimplenodeSocket *)arg;
-    int clientSocket = args->s;
+    // int clientSocket = args->s;
     simpleNode *sN = args->sN;
 
-    //Default sleep time
+    //Default wait time - 2, or -1 (prevent client reasembling socket earlier core dumped)
     sleep(DEF_TIMER_WAIT - 2);
-    sN->setChangeFlag(false);
 
-    close(clientSocket);
+    //If changeflag ative, set it to false
+    if (sN->getChangeFlag())
+        sN->setChangeFlag(false);
+
     pthread_exit(NULL);
 }
 
@@ -116,11 +118,10 @@ void *socketThread(void *arg)
         //Clean buffers and vars
         bzero(sendBuffer, sizeof(sendBuffer));
 
+        //Receive msg
         vectString = recvVectStringSocket(clientSocket);
 
-        //Read msgCode
-        // msgCode = atoi(vectString.at(0).c_str());
-
+        //Regular case
         if (vectString.size() == 6)
         {
             splitVectString(vectString, msgCode, clientID, selfID, syncNumReceived, content, MsgToVerify, MsgSignature);
@@ -130,6 +131,7 @@ void *socketThread(void *arg)
         {
             splitVectStringBlame(vectString, msgCode, clientID, selfID, syncNumReceived, susMsgCode, suspectID, auditorID, susSyncNumReceived, susContent, susMsgSignature, susMsgToVerify, MsgSignature, MsgToVerify);
         }
+        //Not valid msg
         else
         {
             //Someones is connecting fakely
@@ -150,14 +152,14 @@ void *socketThread(void *arg)
         //get connected corresponeded node
         sN = net->getNode(atoi(clientID.c_str()));
 
+        //Validate received msg
         msgValid = net->validateMsg(selfID, clientID, syncNumReceived, MsgToVerify, MsgSignature);
 
         //If msg is not valid, close connection.
         if (!msgValid)
         {
-
             //Attempt of message falsification
-            cout << "Disconnected message was faked" << endl;
+            cout << "Disconnected message was faked B" << endl;
             close(clientSocket);
             pthread_exit(NULL);
         }
@@ -171,49 +173,41 @@ void *socketThread(void *arg)
         //Modify current hash request
         case 0:
 
-            //Activar flag usando cerraduras
+            //Activate flag using locks
             sN->setChangeFlag(true);
 
-            //Lanzar thread contador para anular cerradura
+            //Launch timer to desactive flag
             pthread_t tid;
             if (pthread_create(&tid, NULL, timerThread, (void *)&argSimpleNode) != 0)
             {
                 cout << "Error" << endl;
             }
-            //pthread_join(tid, NULL);
 
-            //Enviar mensaje ACK de vuelta
-            // strcpy(sendBuffer, "ACK");
-            // send(clientSocket, sendBuffer, strlen(sendBuffer), 0);
-
+            //Closing socket is same as ACK
             close(clientSocket);
             pthread_exit(NULL);
-            // cout << "SENT" << endl;
             break;
 
         //Update hash of simpleNode
         case 1:
-            // cout << "received" << endl;
-
+            //Flag must be previously active
             if (sN->getChangeFlag())
             {
                 //Update hash of network node
                 sN->updateHashList(content);
 
-                //Desactivar flag usando cerraduras
+                //Desactive flag
                 sN->setChangeFlag(false);
             }
 
             //Close connection
-            // cout << "Disconnected" << endl;
             close(clientSocket);
             pthread_exit(NULL);
             break;
-        //Audit req
+        //Audit request
         case 2:
-            // cout << "received" << endl;
+            //Send my info
             replyStringSocket(2, sN, atoi(selfID.c_str()), clientSocket, net->getSelfNode()->getLastHash());
-            // cout << "Disconnected" << endl;
             close(clientSocket);
             pthread_exit(NULL);
             break;
@@ -254,8 +248,7 @@ void *socketThread(void *arg)
                     //Decrease 1 unit confidence on auditor to prevent DDoS
                     net->getNode(atoi(auditorID.c_str()))->decreaseTrustLvlIn(DEFAULT_DECREASE_CNT);
 
-                    //Enviar mensaje UPDATE_HASH de vuelta
-                    // cout << "SEND UPDATE " << net->getNode(atoi(suspectID.c_str()))->getLastHash() << endl;
+                    //Reply with UPDATE_HASH msg
                     strcpy(sendBuffer, "UPDATE_HASH");
                     send(clientSocket, sendBuffer, strlen(sendBuffer), 0);
                 }
@@ -304,7 +297,7 @@ int server::serverUP()
     while (1)
     {
 
-        //Se debería analizar la identidad de conexiones para evitar DDoS
+        //Should identity verification be done to prevent DDoS?
         newSocket = accept(sock, (struct sockaddr *)&addr, (socklen_t *)&addrlen);
 
         if (newSocket < 0)
@@ -335,19 +328,12 @@ int server::serverUP()
         }
     }
 
+    //Close server socket
     close(sock);
 
-    //Wait all active connections to close.
-    // i = 0;
-    // while (i < max_c)
-    // {
-    //     pthread_join(tid[i++], NULL);
-    // }
-
-    //Destroy thread
     cout << "SERVER STOPPED" << endl;
+    //Wait max life time of child thread before killing parent thread
     sleep(DEF_TIMER_WAIT);
-    pthread_exit(NULL);
-
-    // return 0;
+    // pthread_exit(NULL);
+    return -1;
 }

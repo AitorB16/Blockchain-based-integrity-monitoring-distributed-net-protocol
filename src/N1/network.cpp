@@ -88,10 +88,7 @@ simpleNode *network::getNode(int ID)
     {
         if (i->getID() == ID)
         {
-            // if (i->isTrusted())
-            // {
             return i;
-            // }
         }
     }
     return NULL;
@@ -177,31 +174,6 @@ fd_set network::getSetOfSockets()
 {
     return readfds;
 }
-
-// void network::insertInReceivedMsgs(string s)
-// {
-//     pthread_mutex_lock(&lockMsgList);
-//     receivedMsgs.push_back(s);
-//     pthread_mutex_unlock(&lockMsgList);
-// }
-
-// bool network::isMsgRepeated(string s)
-// {
-//     bool isRepeated;
-//     pthread_mutex_lock(&lockMsgList);
-//     for (auto const &i : receivedMsgs)
-//     {
-//         if (i == s)
-//         {
-//             isRepeated = true;
-//             break;
-//         }
-//         else
-//             isRepeated = false;
-//     }
-//     pthread_mutex_unlock(&lockMsgList);
-//     return isRepeated;
-// }
 
 void network::printNetwork()
 {
@@ -349,12 +321,10 @@ bool network::sendString(int code, int destID, int sourceID, string content)
             if (i->getID() == destID && i->isTrusted())
             {
 
-                //Random msg
-                // msg = std::string(random);
-
                 //Get and increment Sync Number
                 syncNum = i->getSyncNum();
-                //Se especifica origen + destino + syncNum + content
+
+                //Specify  msgcode + sourceID + destinationID + syncNum + content
                 msg = to_string(code) + ";" + to_string(sourceID) + ";" + to_string(i->getID()) + ";" + to_string(syncNum) + ";" + content;
 
                 signedMsg = sign(msg, std::to_string(sourceID));
@@ -393,13 +363,10 @@ void network::sendStringToAll(int code, int sourceID, string content)
             if (i->isTrusted())
             {
 
-                //Random msg
-                // msg = std::string(random);
-
                 //Get and increment Sync Number
                 syncNum = i->getSyncNum();
 
-                //Se especifica origen + destino + syncNum + content
+                //Specify  msgcode + sourceID + destinationID + syncNum + content
                 msg = to_string(code) + ";" + to_string(sourceID) + ";" + to_string(i->getID()) + ";" + to_string(syncNum) + ";" + content;
 
                 //PROBLEMS SINGING OVER SIGN, NEED HASHING???
@@ -425,49 +392,6 @@ void network::sendStringToAll(int code, int sourceID, string content)
     }
 }
 
-// void network::sendStringToAllNotSingingContent(int code, int sourceID, string content)
-// {
-//     std::string buffer, msg, signedMsg, hexMsg;
-//     int syncNum;
-
-//     try
-//     {
-//         // random = gen_urandom(RANDOM_STR_LEN);
-//         for (auto const &i : otherNodes)
-//         {
-//             if (i->isTrusted())
-//             {
-
-//                 //Random msg
-//                 // msg = std::string(random);
-
-//                 //Get and increment Sync Number
-//                 syncNum = i->getSyncNum();
-
-//                 //Se especifica origen + destino + syncNum
-//                 msg = to_string(code) + ";" + to_string(sourceID) + ";" + to_string(i->getID()) + ";" + to_string(syncNum);
-
-//                 signedMsg = sign(msg, std::to_string(sourceID));
-//                 hexMsg = stream2hex(signedMsg);
-//                 msg = msg + ";" + content + ";" + hexMsg + ";";
-//                 buffer = msg;
-
-//                 if (i->sendString(buffer.c_str()) == -1)
-//                     cout << "Error sending: " << i->getID() << endl;
-//                 else
-//                 {
-//                     cout << "Success sending: " << i->getID() << endl;
-//                     i->incrementSyncNum();
-//                 }
-//             }
-//         }
-//     }
-//     catch (const std::exception &e)
-//     {
-//         std::cerr << e.what() << '\n';
-//     }
-// }
-
 int network::waitResponses(int resNum, int select_time)
 {
     struct timeval tv;
@@ -485,7 +409,7 @@ int network::waitResponses(int resNum, int select_time)
     {
         //just monitorize trusted sockets; low-eq maxFD descriptor
         selectStatus = select(maxFD + 1, &readfds, NULL, NULL, &tv);
-        //
+
         counter += selectStatus;
 
         //if timeout or received message number is gr eq to resNum -> break the loop
@@ -562,11 +486,11 @@ string network::recvString(int ID)
                 return i->recvString();
             }
         }
-        return "";
+        return "ERR";
     }
     catch (const std::exception &e)
     {
-        std::cerr << e.what() << '\n';
-        return "";
+        // std::cerr << e.what() << '\n';
+        return "ERR";
     }
 }

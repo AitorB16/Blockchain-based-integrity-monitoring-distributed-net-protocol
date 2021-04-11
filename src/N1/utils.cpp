@@ -14,6 +14,7 @@ vector<string> splitBuffer(const char *buffer)
     return strings;
 }
 
+//Convert string to hex -> ASCII chars to send over network
 std::string stream2hex(const std::string str)
 {
     std::string hexstr;
@@ -119,52 +120,21 @@ void splitVectString(vector<string> vectString, int &msgCode, string &clientID, 
 void splitVectStringBlame(vector<string> vectString, int &msgCode, string &clientID, string &selfID, int &syncNumReceived, int &susMsgCode, string &suspectID, string &auditorID, int &susSyncNumReceived, string &susContent, string &susMsgSignature, string &susMsgToVerify, string &MsgSignature, string &MsgToVerify)
 {
     //Headers
-    msgCode = atoi(vectString.at(0).c_str());
-    clientID = vectString.at(1);
-    selfID = vectString.at(2);
-    syncNumReceived = atoi(vectString.at(3).c_str());
+    msgCode = atoi(vectString.at(0).c_str());         //MSG CODE
+    clientID = vectString.at(1);                      //Source ID
+    selfID = vectString.at(2);                        //ID of current server
+    syncNumReceived = atoi(vectString.at(3).c_str()); //SyncNum
 
     //Content
-    susMsgCode = atoi(vectString.at(4).c_str());
-    suspectID = vectString.at(5); //Suspicious ID
-    auditorID = vectString.at(6); //ID of auditor
-    susSyncNumReceived = atoi(vectString.at(7).c_str());
-    susContent = vectString.at(8);      //Conflictive hash
-    susMsgSignature = vectString.at(9); //Signed msg
+    susMsgCode = atoi(vectString.at(4).c_str());         //Mscg Code from suspicious reply (2)
+    suspectID = vectString.at(5);                        //Suspicious ID
+    auditorID = vectString.at(6);                        //ID of auditor
+    susSyncNumReceived = atoi(vectString.at(7).c_str()); //SyncNum from suspicious reply
+    susContent = vectString.at(8);                       //Conflictive hash
+    susMsgSignature = vectString.at(9);                  //Signed msg
     susMsgToVerify = to_string(susMsgCode) + ";" + suspectID + ";" + auditorID + ";" + to_string(susSyncNumReceived) + ";" + susContent;
 
     //Signature
     MsgSignature = vectString.at(10);
     MsgToVerify = to_string(msgCode) + ";" + clientID + ";" + selfID + ";" + to_string(syncNumReceived) + ";" + susMsgToVerify + ";" + susMsgSignature;
 }
-
-// void validateMsg(network *net, string selfID, string clientID, int syncNumStored, int syncNumReceived, simpleNode *sN, string MsgToVerify, string MsgSignature, int clientSocket)
-// {
-//     //Verify if msg is for me
-//     bool verifyMsg = false;
-
-//     if (atoi(selfID.c_str()) == net->getID())
-//     {
-//         //Verify if sync number is correct
-//         syncNumStored = sN->getSyncNum();
-//         if (syncNumReceived == syncNumStored)
-//         {
-//             //Verify if msg is correctly signed
-//             if (verify(MsgToVerify, hex2stream(MsgSignature), clientID))
-//             {
-//                 //Increment sync number
-//                 sN->incrementSyncNum();
-//                 //Verification successful
-//                 verifyMsg = true;
-//             }
-//         }
-//     }
-//     if (!verifyMsg)
-//     {
-
-//         //Attempt of message falsification
-//         cout << "Disconnected message was faked" << endl;
-//         close(clientSocket);
-//         pthread_exit(NULL);
-//     }
-// }

@@ -104,13 +104,13 @@ int main(void)
             if (!net->isNetworkComprometed())
             {
                 //DESACTIVATE AUDITOR TEMPORALY?
-                
+
                 //Connect to ALL
                 net->connectToAllNodes();
 
                 //Send request to ALL
 
-                //Enviar solo a los nodos conectados //Code 0 REQUEST
+                //Just sent to connected nodes
                 net->sendStringToAll(0, net->getID());
 
                 //Wait 2/3 of network to send OK Select; timeout 30sec

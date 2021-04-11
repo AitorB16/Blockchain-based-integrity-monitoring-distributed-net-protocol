@@ -57,14 +57,17 @@ sockaddr_in simpleNode::getAddr()
 {
     return simpleNode::addr;
 }
+//lock
 string simpleNode::getLastHash()
 {
     return hashHistory.front();
 }
+//lock
 void simpleNode::updateHashList(string hash)
 {
     hashHistory.push_front(hash);
 }
+//lock
 bool simpleNode::isHashRepeated(string hash)
 {
     for (auto const &i : hashHistory)
@@ -195,29 +198,29 @@ string simpleNode::recvString()
     bzero(buffer, 4096);
 
     //SELECT
-    struct timeval tv;
-    tv.tv_sec = 1;
-    tv.tv_usec = 0;
+    // struct timeval tv;
+    // tv.tv_sec = 1;
+    // tv.tv_usec = 0;
 
-    int selectStatus;
-    fd_set fdSet;
-    FD_ZERO(&fdSet);
-    FD_SET(sock, &fdSet);
+    // int selectStatus;
+    // fd_set fdSet;
+    // FD_ZERO(&fdSet);
+    // FD_SET(sock, &fdSet);
 
-    if (0 < select(sock + 1, &fdSet, NULL, NULL, &tv))
-    {
+    // if (0 < select(sock + 1, &fdSet, NULL, NULL, &tv))
+    // {
         if (recv(sock, buffer, 4096, 0) < 0)
         {
             // printf("[-]Error in receiving data.\n");
-            return "";
+            return "ERR";
         }
         else
         {
             return buffer;
         }
-    }
-    else
-    {
-        return "";
-    }
+    // }
+    // else
+    // {
+    //     return "ERR";
+    // }
 }
