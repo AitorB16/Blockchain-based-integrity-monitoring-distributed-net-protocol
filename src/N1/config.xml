@@ -27,5 +27,11 @@
             <port>25573</port>
             <pub>./RSA_keys/RSA_pub4.der</pub>
         </node>
+        <node>
+            <id>5</id>
+            <ip>127.0.0.1</ip>
+            <port>25574</port>
+            <pub>./RSA_keys/RSA_pub5.der</pub>
+        </node>
     </network>
 </config>

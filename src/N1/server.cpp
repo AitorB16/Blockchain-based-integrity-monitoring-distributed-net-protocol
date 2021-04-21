@@ -13,7 +13,8 @@ vector<string> recvVectStringSocket(int sock)
     }
     catch (const std::exception &e)
     {
-        std::cerr << e.what() << '\n';
+        if (DEBUG_MODE)
+            std::cerr << e.what() << '\n';
         return vs;
     }
 }
@@ -37,10 +38,14 @@ bool replyStringSocket(int code, simpleNode *sN, int sourceID, int sock, string 
         msg = msg + ";" + hexMsg + ";";
         buffer = msg;
         if (send(sock, buffer.c_str(), strlen(buffer.c_str()), 0) == -1)
-            cout << "Error sending: " << sN->getID() << endl;
+        {
+            if (DEBUG_MODE)
+                cout << "Error sending: " << sN->getID() << endl;
+        }
         else
         {
-            cout << "Success sending: " << sN->getID() << endl;
+            if (DEBUG_MODE)
+                cout << "Success sending: " << sN->getID() << endl;
             return true;
         }
 
@@ -48,7 +53,8 @@ bool replyStringSocket(int code, simpleNode *sN, int sourceID, int sock, string 
     }
     catch (const std::exception &e)
     {
-        std::cerr << e.what() << '\n';
+        if (DEBUG_MODE)
+            std::cerr << e.what() << '\n';
         return false;
     }
 }
@@ -80,8 +86,8 @@ void *timerThread(void *arg)
     // int clientSocket = args->s;
     simpleNode *sN = args->sN;
 
-    //Default wait time - 2, or -1 (prevent client reasembling socket earlier core dumped)
-    sleep(DEF_TIMER_WAIT - 2);
+    //Default wait time + 2, or + 1 (tolerate small delays)
+    sleep(DEF_TIMER_WAIT + 2 + 5);
 
     //If changeflag ative, set it to false
     if (sN->getChangeFlag())
@@ -100,8 +106,6 @@ void *socketThread(void *arg)
     int clientSocket = args->s;
     simpleNode *sN;
 
-    // sN->setSocket(clientSocket);
-
     network *net = args->net;
     vector<string> vectString;
     int msgCode, syncNumReceived, syncNumStored;
@@ -115,6 +119,8 @@ void *socketThread(void *arg)
 
     while (1)
     {
+        //Wait a message to enter with select?
+
         //Clean buffers and vars
         bzero(sendBuffer, sizeof(sendBuffer));
 
@@ -131,11 +137,12 @@ void *socketThread(void *arg)
         {
             splitVectStringBlame(vectString, msgCode, clientID, selfID, syncNumReceived, susMsgCode, suspectID, auditorID, susSyncNumReceived, susContent, susMsgSignature, susMsgToVerify, MsgSignature, MsgToVerify);
         }
-        //Not valid msg
+        //Msg not identified
         else
         {
-            //Someones is connecting fakely
-            cout << "Disconnected not valid" << endl;
+            //Someone is connecting fakely
+            if (DEBUG_MODE)
+                cout << "Disconnected not valid" << endl;
             close(clientSocket);
             pthread_exit(NULL);
         }
@@ -144,7 +151,8 @@ void *socketThread(void *arg)
         if (!net->getNode(atoi(clientID.c_str()))->isTrusted())
         {
             //Attempt of message falsification
-            cout << "Disconnected not trusted" << endl;
+            if (DEBUG_MODE)
+                cout << "Disconnected not trusted, ID " << clientID << endl;
             close(clientSocket);
             pthread_exit(NULL);
         }
@@ -159,8 +167,11 @@ void *socketThread(void *arg)
         if (!msgValid)
         {
             //Attempt of message falsification
-            cout << "Disconnected message was faked B" << endl;
+
+            //Dont decrease trustlvl; someone could be replacing client's identity
             close(clientSocket);
+            if (DEBUG_MODE)
+                cout << "Disconnected message was faked (in server)" << sN->getSyncNum() << endl;
             pthread_exit(NULL);
         }
 
@@ -180,8 +191,13 @@ void *socketThread(void *arg)
             pthread_t tid;
             if (pthread_create(&tid, NULL, timerThread, (void *)&argSimpleNode) != 0)
             {
-                cout << "Error" << endl;
+                if (DEBUG_MODE)
+                    cout << "Error creating flag thread" << endl;
             }
+
+            //Decrease trustlvl to limit requests and prevent DDOS -- random 2 to make decreasement slower
+            // if (get_randomNumber(2) == 0)
+            //     sN->decreaseTrustLvlIn(DEFAULT_DECREASE_CNT);
 
             //Closing socket is same as ACK
             close(clientSocket);
@@ -198,6 +214,12 @@ void *socketThread(void *arg)
 
                 //Desactive flag
                 sN->setChangeFlag(false);
+            }
+            //No request done or time run out
+            else
+            {
+                // if (get_randomNumber(2) == 0)
+                sN->decreaseTrustLvlIn(DEFAULT_DECREASE_CNT);
             }
 
             //Close connection
@@ -216,7 +238,8 @@ void *socketThread(void *arg)
             //If im the suspicious node, dont do anything
             if (suspectID == selfID)
             {
-                cout << "Im being audited" << endl;
+                if (DEBUG_MODE)
+                    cout << "Im being audited" << endl;
             }
             //If im not the suspicous node
             else
@@ -227,12 +250,16 @@ void *socketThread(void *arg)
                     //Non repudiation from suspicious
                     if (verify(susMsgToVerify, hex2stream(susMsgSignature), suspectID))
                     {
+                        //Insert conflictive hash in list
+                        if (!net->getNode(atoi(suspectID.c_str()))->isConflictiveHashRepeated(susContent))
+                            net->getNode(atoi(suspectID.c_str()))->updateConflictiveHashList(susContent);
+
                         //Decrease confidence on suspicious
                         net->getNode(atoi(suspectID.c_str()))->decreaseTrustLvlIn(DEFAULT_DECREASE_CNT);
 
                         //Preventive, if I lost this update, decrease confidence on auditor.
-                        //MAKE DE AUDITOR DECREASE AT 1/2 SPEED OF SUSPECT
-                        if (get_randomNumber(2) == 0)
+                        //MAKE DE AUDITOR DECREASE AT trusted node number * 2/3 SPEED OF SUSPECT
+                        if (get_randomNumber(net->getTrustedNodeNumber() * THRESHOLD) == 0)
                             net->getNode(atoi(auditorID.c_str()))->decreaseTrustLvlIn(DEFAULT_DECREASE_CNT);
                     }
                     //Msg faked by auditor
@@ -262,13 +289,14 @@ void *socketThread(void *arg)
             //Close connection
             //AUDITOR_SELECT_WAIT + 1
             sleep(3);
-            cout << "Disconnected" << endl;
+            // cout << "Disconnected" << endl;
             close(clientSocket);
             pthread_exit(NULL);
             break;
         default:
             //Close connection
-            cout << "Disconnected" << endl;
+            if (DEBUG_MODE)
+                cout << "Disconnected" << endl;
             close(clientSocket);
             pthread_exit(NULL);
             break;
@@ -292,7 +320,8 @@ int server::serverUP()
     if (listen(sock, max_c) < 0)
         return -1;
 
-    cout << "Server UP" << endl;
+    if (DEBUG_MODE || INTERACTIVE_MODE)
+        cout << "Server UP" << endl;
 
     while (1)
     {
@@ -309,7 +338,8 @@ int server::serverUP()
 
         if (pthread_create(&tid[i++], NULL, socketThread, (void *)&args) != 0)
         {
-            printf("Error");
+            if (DEBUG_MODE)
+                cout << "Error creating thread to serve client" << endl;
         }
 
         if (i >= max_c)
@@ -330,8 +360,8 @@ int server::serverUP()
 
     //Close server socket
     close(sock);
-
-    cout << "SERVER STOPPED" << endl;
+    if (DEBUG_MODE || INTERACTIVE_MODE)
+        cout << "SERVER STOPPED" << endl;
     //Wait max life time of child thread before killing parent thread
     sleep(DEF_TIMER_WAIT);
     // pthread_exit(NULL);

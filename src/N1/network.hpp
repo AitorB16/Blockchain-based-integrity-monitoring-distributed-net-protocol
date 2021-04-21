@@ -28,8 +28,7 @@
 
 #define RANDOM_STR_LEN 16
 #define NETWORK_SELECT_WAIT 30
-#define THRESHOLD 2/3
-
+#define THRESHOLD 2 / 3
 
 class network
 {
@@ -47,6 +46,11 @@ private:
     int maxFD;
     // std::list<fd_set> fdsList;
 
+    //Mutex
+    pthread_mutex_t lockTrustedNodeNumber;
+    pthread_mutex_t lockNetworkComprometed;
+    pthread_mutex_t lockMaxFD;
+
     static network *instance;
     network();
 
@@ -55,22 +59,23 @@ public:
     selfNode *getSelfNode();
     simpleNode *getNode(int ID);
     int getID();
-    void setID(int ID);
+    // void setID(int ID);
     int getNodeNumber();
     int getTrustedNodeNumber();
     void updateTrustedNodeNumber();
     bool imTrusted();
-    bool isTrsuted(int ID);
-    int trustLvl(int ID);
+    // bool isTrsuted(int ID);
+    // int trustLvl(int ID);
     bool isNetworkComprometed();
     void setNetworkToComprometed();
     int getMaxFD();
+    void setMaxFD(int fd);
     fd_set getSetOfSockets();
     // void insertInReceivedMsgs(string s);
     // bool isMsgRepeated(string s);
     void printNetwork();
     // void initializeServer();
-    void connectToAllNodes();
+    bool connectToAllNodes();
     bool connectToNode(int ID);
     void reassembleSocket(int ID);
     void reassembleAllSockets();
@@ -81,7 +86,7 @@ public:
     int waitResponses(int resNum, int select_time);
     int getTrustedRandomNode();
     void resetTrustLvl();
-    string recvString(int ID);
+    // string recvString(int ID);
     // void sendPackage();sendPackage Google buffer, XML
 };
 

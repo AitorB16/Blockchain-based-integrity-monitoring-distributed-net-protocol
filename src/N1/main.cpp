@@ -54,16 +54,20 @@ int main(void)
     //Launch the server
     if (pthread_create(&serverTid, NULL, serverThread, (void *)&args) != 0)
     {
-        printf("Error");
+        if (DEBUG_MODE)
+            cout << "Error creating server thread" << endl;
         exit(1);
     }
 
-    // //Launch the auditor
+    //Launch the auditor
     if (pthread_create(&serverTid, NULL, auditorThread, (void *)&args) != 0)
     {
-        printf("Error");
+        if (DEBUG_MODE)
+            cout << "Error creating auditor thread" << endl;
         exit(1);
     }
+
+    //Launch thread updating selfhash
 
     //SYNC NUMBERS REQ
 
@@ -75,90 +79,140 @@ int main(void)
     string input;
     int dest;
 
-    string IDNodeHash;
-    bool flagValue;
+    simpleNode sN;
+
+    // string IDNodeHash;
+    // bool flagValue;
 
     //WE NEED A SYNC METHOD
 
     while (1)
     {
 
-        // waitpid(-1, NULL, WNOHANG); //KILL ZOMBIE PROCESSES
-
-        cout << "Enter options" << endl;
-        cin >> option;
-
-        switch (option)
+        if (DEBUG_MODE || INTERACTIVE_MODE)
         {
-        //Close infraestructure
-        case 0:
-            cout << "Exiting infra" << endl;
-            exit(0);
-            break;
-        //Print Network
-        case 1:
-            net->printNetwork();
-            break;
-        //BCAST request to send + timeout + count
-        case 2:
-            if (!net->isNetworkComprometed())
+
+            cout << "Enter options" << endl;
+            cin >> option;
+
+            switch (option)
             {
-                //DESACTIVATE AUDITOR TEMPORALY?
-
-                //Connect to ALL
-                net->connectToAllNodes();
-
-                //Send request to ALL
-
-                //Just sent to connected nodes
-                net->sendStringToAll(0, net->getID());
-
-                //Wait 2/3 of network to send OK Select; timeout 30sec
-                numRes = net->waitResponses(net->getTrustedNodeNumber() * THRESHOLD, NETWORK_SELECT_WAIT);
-
-                cout << "NUM RES: " << numRes << endl;
-
-                if (numRes >= net->getTrustedNodeNumber() * THRESHOLD)
+            //Close infraestructure
+            case 0:
+                cout << "Exiting infra" << endl;
+                exit(0);
+                break;
+            //Print Network
+            case 1:
+                if (net->isNetworkComprometed())
                 {
-                    net->reassembleAllSockets();
-                    net->connectToAllNodes();
-
-                    //Send hash
-                    net->sendStringToAll(1, net->getID(), net->getSelfNode()->getLastHash());
-
-                    cout << "hash sent" << endl;
+                    cout << "I'm not trusted by the network, not recieving updates anymore; my data is not valid" << endl;
                 }
-                //Network is comprometed
                 else
                 {
-                    cout << "Network is comprometed" << endl;
-                    net->setNetworkToComprometed();
-                    // exit(0);
+                    net->printNetwork();
                 }
+                break;
+            //BCAST request to send + timeout + count
+            case 2:
+                if (!net->isNetworkComprometed())
+                {
+                    //DESACTIVATE AUDITOR TEMPORALY?
 
-                //Close connection
-                net->reassembleAllSockets();
+                    //Connect to ALL
+                    if (net->connectToAllNodes())
+                    {
+                        //pause auditor
+                        net->getSelfNode()->setChangeFlag(true);
+
+
+                        //Send request to ALL
+
+                        //Just send to connected nodes
+                        net->sendStringToAll(0, net->getID());
+
+                        //Wait 2/3 of network to send OK Select; timeout 30sec
+                        numRes = net->waitResponses(net->getTrustedNodeNumber() * THRESHOLD, NETWORK_SELECT_WAIT);
+
+                        // if (INTERACTIVE_MODE)
+                        //     cout << "NUM RES: " << numRes << endl;
+
+                        if (numRes >= net->getTrustedNodeNumber() * THRESHOLD)
+                        {
+                            net->reassembleAllSockets();
+
+                            //In this part just sleep for DEF_TIMER_WAIT, and let the hashUpdate thread work
+                            cout << "!!! You have " << DEF_TIMER_WAIT << " seconds, to work" << endl;
+                            cout << "Enter new hash value: " << endl;
+                            cin >> input;
+                            net->getSelfNode()->updateHashList(input);
+
+                            net->connectToAllNodes();
+
+                            //Send hash
+                            net->sendStringToAll(1, net->getID(), net->getSelfNode()->getLastHash());
+                            if (DEBUG_MODE)
+                                cout << "hash sent" << endl;
+                        }
+                        //Network is comprometed
+                        else
+                        {
+                            cout << "Network is comprometed" << endl;
+                            net->setNetworkToComprometed();
+                        }
+
+                        //Close connection
+                        net->reassembleAllSockets();
+
+                        //resume auditor IN REALITY RESUME IT WITH A TIMER THREAD
+                        net->getSelfNode()->setChangeFlag(false);
+                    }
+                    else
+                    {
+                        //MaxFD !=-1 or error connecting to node
+                        cout << "Network is busy, try again later" << endl;
+                    }
+                }
+                break;
+            //Update selfhash manualy
+            case 3:
+                if (net->isNetworkComprometed())
+                {
+                    cout << "I'm not trusted by the network, not recieving updates anymore; my data is not valid" << endl;
+                }
+                else
+                {
+                    cout << "enter new hash" << endl;
+                    cin >> input;
+                    net->getSelfNode()->updateHashList(input);
+                }
+                break;
+            //Print hash record and conflictive hash record
+            case 4:
+                if (net->isNetworkComprometed())
+                {
+                    cout << "I'm not trusted by the network, not recieving updates anymore; my data is not valid" << endl;
+                }
+                else
+                {
+                    cout << "enter node ID" << endl;
+                    cin >> dest;
+                    if (dest != net->getSelfNode()->getID())
+                    {
+                        cout << endl
+                             << "GOOD HASH RECORD" << endl;
+                        net->getNode(dest)->printHashList();
+                        cout << endl
+                             << "BAD HASH RECORD" << endl;
+                        net->getNode(dest)->printConflictiveHashList();
+                        cout << endl;
+                    }
+                }
+                break;
+
+            default:
+                break;
             }
-            break;
-        case 3:
-            cout << "enter node ID" << endl;
-            cin >> dest;
-            flagValue = net->getNode(dest)->getChangeFlag();
-            cout << flagValue << endl;
-            break;
-        case 4:
-            cout << "enter node ID" << endl;
-            cin >> dest;
-            IDNodeHash = net->getNode(dest)->getLastHash();
-            cout << IDNodeHash << endl;
-            break;
-        //Update selfhash manualy.
-        case 5:
-            cout << "enter new hash" << endl;
-            cin >> input;
-            net->getSelfNode()->updateHashList(input);
-        default:
-            break;
         }
     }
 

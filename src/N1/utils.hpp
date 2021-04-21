@@ -12,6 +12,9 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#define INTERACTIVE_MODE 1
+#define DEBUG_MODE  2
+
 using namespace std;
 
 vector<string> splitBuffer(const char *buffer);
