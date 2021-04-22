@@ -13,8 +13,8 @@ vector<string> recvVectStringSocket(int sock)
     }
     catch (const std::exception &e)
     {
-        if (DEBUG_MODE)
-            std::cerr << e.what() << '\n';
+        if (EXEC_MODE == DEBUG_MODE)
+            cerr << e.what() << '\n';
         return vs;
     }
 }
@@ -53,8 +53,8 @@ bool replyStringSocket(int code, netNode *nN, int sourceID, int sock, string con
     }
     catch (const std::exception &e)
     {
-        if (DEBUG_MODE)
-            std::cerr << e.what() << '\n';
+        if (EXEC_MODE == DEBUG_MODE)
+            cerr << e.what() << '\n';
         return false;
     }
 }
@@ -114,199 +114,213 @@ void *socketThread(void *arg)
 
     bool msgValid = false;
 
-    while (1)
+    //SELECT TO PREVENT BLOCKING RESOURCES
+    struct timeval tv;
+    tv.tv_sec = RESPONSE_DELAY_MAX;
+    tv.tv_usec = 0;
+
+    fd_set fdSet;
+    FD_ZERO(&fdSet);
+    FD_SET(clientSocket, &fdSet);
+
+    //Timeout
+    if (0 == select(clientSocket + 1, &fdSet, NULL, NULL, &tv))
     {
-        //USE SELECT TO PREVENT BLOCKING RESOURCES
+        //Someone is connecting fakely
+        if (EXEC_MODE == DEBUG_MODE)
+            cout << "Client run out of time" << endl;
+        close(clientSocket);
+        pthread_exit(NULL);
+    }
 
-        //Clean buffers and vars
-        bzero(sendBuffer, sizeof(sendBuffer));
+    //Clean buffers and vars
+    bzero(sendBuffer, sizeof(sendBuffer));
 
-        //Receive msg
-        vectString = recvVectStringSocket(clientSocket);
+    //Receive msg
+    vectString = recvVectStringSocket(clientSocket);
 
-        //Regular case
-        if (vectString.size() == 6)
+    //Regular case
+    if (vectString.size() == 6)
+    {
+        splitVectString(vectString, msgCode, clientID, selfID, syncNumReceived, content, MsgToVerify, MsgSignature);
+    }
+    //Blame case
+    else if (vectString.size() == 11)
+    {
+        splitVectStringBlame(vectString, msgCode, clientID, selfID, syncNumReceived, susMsgCode, suspectID, auditorID, susSyncNumReceived, susContent, susMsgSignature, susMsgToVerify, MsgSignature, MsgToVerify);
+    }
+    //Msg not identified
+    else
+    {
+        //Someone is connecting fakely
+        if (EXEC_MODE == DEBUG_MODE)
+            cout << "Disconnected not valid" << endl;
+        close(clientSocket);
+        pthread_exit(NULL);
+    }
+
+    //If not trusted, close connection
+    if (!net->getNode(clientID)->isTrusted())
+    {
+        //Attempt of message falsification
+        if (EXEC_MODE == DEBUG_MODE)
+            cout << "Disconnected not trusted, ID " << clientID << endl;
+        close(clientSocket);
+        pthread_exit(NULL);
+    }
+
+    //get connected corresponeded node
+    nN = net->getNode(clientID);
+
+    //Validate received msg
+    msgValid = net->validateMsg(selfID, clientID, syncNumReceived, MsgToVerify, MsgSignature);
+
+    //If msg is not valid, close connection.
+    if (!msgValid)
+    {
+        //Attempt of message falsification
+
+        //Dont decrease trustlvl; someone could be replacing client's identity
+        close(clientSocket);
+        if (EXEC_MODE == DEBUG_MODE)
+            cout << "Disconnected message was faked (in server)" << nN->getSyncNum() << endl;
+        pthread_exit(NULL);
+    }
+
+    //Create new args of netNode
+    argNetNode.nN = nN;
+    argNetNode.s = clientSocket;
+
+    switch (msgCode)
+    {
+    //Modify current hash request
+    case 0:
+
+        //Activate flag using locks
+        nN->setChangeFlag(true);
+
+        //Launch timer to desactive flag
+        pthread_t tid;
+        if (pthread_create(&tid, NULL, timerThread, (void *)&argNetNode) != 0)
         {
-            splitVectString(vectString, msgCode, clientID, selfID, syncNumReceived, content, MsgToVerify, MsgSignature);
+            if (EXEC_MODE == DEBUG_MODE)
+                cout << "Error creating flag thread" << endl;
         }
-        //Blame case
-        else if (vectString.size() == 11)
+
+        //Decrease trustlvl to limit requests and prevent DDOS -- random 2 to make decreasement slower
+        // if (get_randomNumber(2) == 0)
+        //     nN->decreaseTrustLvlIn(TRUST_DECREASE_CONST);
+
+        //Closing socket is same as ACK
+        close(clientSocket);
+        pthread_exit(NULL);
+        break;
+
+    //Update hash of netNode
+    case 1:
+        //Flag must be previously active
+        if (nN->getChangeFlag())
         {
-            splitVectStringBlame(vectString, msgCode, clientID, selfID, syncNumReceived, susMsgCode, suspectID, auditorID, susSyncNumReceived, susContent, susMsgSignature, susMsgToVerify, MsgSignature, MsgToVerify);
+            //Update hash of network node
+            nN->updateHashList(content);
+
+            //Desactive flag
+            nN->setChangeFlag(false);
         }
-        //Msg not identified
+        //No request done or time run out
         else
         {
-            //Someone is connecting fakely
-            if (EXEC_MODE == DEBUG_MODE)
-                cout << "Disconnected not valid" << endl;
-            close(clientSocket);
-            pthread_exit(NULL);
-        }
-
-        //If not trusted, close connection
-        if (!net->getNode(clientID)->isTrusted())
-        {
-            //Attempt of message falsification
-            if (EXEC_MODE == DEBUG_MODE)
-                cout << "Disconnected not trusted, ID " << clientID << endl;
-            close(clientSocket);
-            pthread_exit(NULL);
-        }
-
-        //get connected corresponeded node
-        nN = net->getNode(clientID);
-
-        //Validate received msg
-        msgValid = net->validateMsg(selfID, clientID, syncNumReceived, MsgToVerify, MsgSignature);
-
-        //If msg is not valid, close connection.
-        if (!msgValid)
-        {
-            //Attempt of message falsification
-
-            //Dont decrease trustlvl; someone could be replacing client's identity
-            close(clientSocket);
-            if (EXEC_MODE == DEBUG_MODE)
-                cout << "Disconnected message was faked (in server)" << nN->getSyncNum() << endl;
-            pthread_exit(NULL);
-        }
-
-        //Create new args of netNode
-        argNetNode.nN = nN;
-        argNetNode.s = clientSocket;
-
-        switch (msgCode)
-        {
-        //Modify current hash request
-        case 0:
-
-            //Activate flag using locks
-            nN->setChangeFlag(true);
-
-            //Launch timer to desactive flag
-            pthread_t tid;
-            if (pthread_create(&tid, NULL, timerThread, (void *)&argNetNode) != 0)
-            {
-                if (EXEC_MODE == DEBUG_MODE)
-                    cout << "Error creating flag thread" << endl;
-            }
-
-            //Decrease trustlvl to limit requests and prevent DDOS -- random 2 to make decreasement slower
             // if (get_randomNumber(2) == 0)
-            //     nN->decreaseTrustLvlIn(TRUST_DECREASE_CONST);
+            nN->decreaseTrustLvlIn(TRUST_DECREASE_CONST);
+        }
 
-            //Closing socket is same as ACK
-            close(clientSocket);
-            pthread_exit(NULL);
-            break;
-
-        //Update hash of netNode
-        case 1:
-            //Flag must be previously active
-            if (nN->getChangeFlag())
+        //Close connection
+        close(clientSocket);
+        pthread_exit(NULL);
+        break;
+    //Audit request
+    case 2:
+        //Send my info
+        replyStringSocket(2, nN, selfID, clientSocket, net->getSelfNode()->getLastHash());
+        close(clientSocket);
+        pthread_exit(NULL);
+        break;
+    //Blame
+    case 3:
+        //If im the suspicious node, dont do anything
+        if (suspectID == selfID)
+        {
+            if (EXEC_MODE == DEBUG_MODE)
+                cout << "Im being audited" << endl;
+        }
+        //If im not the suspicous node
+        else
+        {
+            //The content isnt on the list
+            if (!net->getNode(suspectID)->isHashRepeated(susContent))
             {
-                //Update hash of network node
-                nN->updateHashList(content);
-
-                //Desactive flag
-                nN->setChangeFlag(false);
-            }
-            //No request done or time run out
-            else
-            {
-                // if (get_randomNumber(2) == 0)
-                nN->decreaseTrustLvlIn(TRUST_DECREASE_CONST);
-            }
-
-            //Close connection
-            close(clientSocket);
-            pthread_exit(NULL);
-            break;
-        //Audit request
-        case 2:
-            //Send my info
-            replyStringSocket(2, nN, selfID, clientSocket, net->getSelfNode()->getLastHash());
-            close(clientSocket);
-            pthread_exit(NULL);
-            break;
-        //Blame
-        case 3:
-            //If im the suspicious node, dont do anything
-            if (suspectID == selfID)
-            {
-                if (EXEC_MODE == DEBUG_MODE)
-                    cout << "Im being audited" << endl;
-            }
-            //If im not the suspicous node
-            else
-            {
-                //The content isnt on the list
-                if (!net->getNode(suspectID)->isHashRepeated(susContent))
+                //Non repudiation from suspicious
+                if (verify(susMsgToVerify, hex2stream(susMsgSignature), to_string(suspectID)))
                 {
-                    //Non repudiation from suspicious
-                    if (verify(susMsgToVerify, hex2stream(susMsgSignature), to_string(suspectID)))
-                    {
-                        //Insert conflictive hash in list
-                        if (!net->getNode(suspectID)->isConflictiveHashRepeated(susContent))
-                            net->getNode(suspectID)->updateConflictiveHashList(susContent);
+                    //Insert conflictive hash in list
+                    if (!net->getNode(suspectID)->isConflictiveHashRepeated(susContent))
+                        net->getNode(suspectID)->updateConflictiveHashList(susContent);
 
-                        //Decrease confidence on suspicious
-                        net->getNode(suspectID)->decreaseTrustLvlIn(TRUST_DECREASE_CONST);
+                    //Decrease confidence on suspicious
+                    net->getNode(suspectID)->decreaseTrustLvlIn(TRUST_DECREASE_CONST);
 
-                        //Preventive, if I lost this update, decrease confidence on auditor.
-                        //MAKE DE AUDITOR DECREASE AT trusted node number * 2/3 SPEED OF SUSPECT
-                        if (get_randomNumber(net->getTrustedNodeNumber() * THRESHOLD) == 0)
-                            net->getNode(auditorID)->decreaseTrustLvlIn(TRUST_DECREASE_CONST);
-                    }
-                    //Msg faked by auditor
-                    else
-                    {
-                        //Decrease confidence on auditor
+                    //Preventive, if I lost this update, decrease confidence on auditor.
+                    //MAKE DE AUDITOR DECREASE AT trusted node number * 2/3 SPEED OF SUSPECT
+                    if (get_randomNumber(net->getTrustedNodeNumber() * THRESHOLD) == 0)
                         net->getNode(auditorID)->decreaseTrustLvlIn(TRUST_DECREASE_CONST);
-                    }
                 }
-                //OK the auditor node isnt updated
-                else if (net->getNode(suspectID)->getLastHash() == susContent)
-                {
-                    //Decrease 1 unit confidence on auditor to prevent DDoS
-                    net->getNode(auditorID)->decreaseTrustLvlIn(TRUST_DECREASE_CONST);
-
-                    //Reply with UPDATE_HASH msg
-                    strcpy(sendBuffer, "UPDATE_HASH");
-                    if (send(clientSocket, sendBuffer, strlen(sendBuffer), 0) == -1)
-                    {
-                        if (EXEC_MODE == DEBUG_MODE)
-                            cout << "Error sending: " << auditorID << endl;
-                    }
-                    else
-                    {
-                        if (EXEC_MODE == DEBUG_MODE)
-                            cout << "Success sending: " << auditorID << endl;
-                    }
-                }
-                //Auditor sent me an old msg
+                //Msg faked by auditor
                 else
                 {
                     //Decrease confidence on auditor
                     net->getNode(auditorID)->decreaseTrustLvlIn(TRUST_DECREASE_CONST);
                 }
             }
-            //Close connection
-            //RESPONSE_DELAY_MAX + 1
-            sleep(RESPONSE_DELAY_MAX + 1);
-            // cout << "Disconnected" << endl;
-            close(clientSocket);
-            pthread_exit(NULL);
-            break;
-        default:
-            //Close connection
-            if (EXEC_MODE == DEBUG_MODE)
-                cout << "Disconnected" << endl;
-            close(clientSocket);
-            pthread_exit(NULL);
-            break;
+            //OK the auditor node isnt updated
+            else if (net->getNode(suspectID)->getLastHash() == susContent)
+            {
+                //Decrease 1 unit confidence on auditor to prevent DDoS
+                net->getNode(auditorID)->decreaseTrustLvlIn(TRUST_DECREASE_CONST);
+
+                //Reply with UPDATE_HASH msg
+                strcpy(sendBuffer, "UPDATE_HASH");
+                if (send(clientSocket, sendBuffer, strlen(sendBuffer), 0) == -1)
+                {
+                    if (EXEC_MODE == DEBUG_MODE)
+                        cout << "Error sending: " << auditorID << endl;
+                }
+                else
+                {
+                    if (EXEC_MODE == DEBUG_MODE)
+                        cout << "Success sending: " << auditorID << endl;
+                }
+            }
+            //Auditor sent me an old msg
+            else
+            {
+                //Decrease confidence on auditor
+                net->getNode(auditorID)->decreaseTrustLvlIn(TRUST_DECREASE_CONST);
+            }
         }
+        //Close connection
+        //RESPONSE_DELAY_MAX + 1
+        sleep(RESPONSE_DELAY_MAX + 1);
+        // cout << "Disconnected" << endl;
+        close(clientSocket);
+        pthread_exit(NULL);
+        break;
+    default:
+        //Close connection
+        if (EXEC_MODE == DEBUG_MODE)
+            cout << "Disconnected" << endl;
+        close(clientSocket);
+        pthread_exit(NULL);
+        break;
     }
 }
 

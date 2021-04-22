@@ -2,31 +2,31 @@
 
 //Reset confidence
 
-bool waitResponseFromAudited(int sock)
-{
-    struct timeval tv;
-    tv.tv_sec = RESPONSE_DELAY_MAX;
-    tv.tv_usec = 0;
+// bool waitResponseFromAudited(int sock)
+// {
+//     struct timeval tv;
+//     tv.tv_sec = RESPONSE_DELAY_MAX;
+//     tv.tv_usec = 0;
 
-    int selectStatus;
-    int counter = 0;
-    fd_set FdSet;
+//     int selectStatus;
+//     int counter = 0;
+//     fd_set FdSet;
 
-    FD_ZERO(&FdSet);  //clear the socket set
-    int maxFD = sock; //initialize tmpMaxFD
-    FD_SET(sock, &FdSet);
+//     FD_ZERO(&FdSet);  //clear the socket set
+//     int maxFD = sock; //initialize tmpMaxFD
+//     FD_SET(sock, &FdSet);
 
-    //just monitorize trusted sockets; low-eq maxFD descriptor
-    selectStatus = select(maxFD + 1, &FdSet, NULL, NULL, &tv);
-    //
-    counter += selectStatus;
+//     //just monitorize trusted sockets; low-eq maxFD descriptor
+//     selectStatus = select(maxFD + 1, &FdSet, NULL, NULL, &tv);
+//     //
+//     counter += selectStatus;
 
-    //if timeout or received message number is gr eq to resNum -> break the loop
-    if (selectStatus == 0)
-        return true;
+//     //if timeout or received message number is gr eq to resNum -> break the loop
+//     if (selectStatus == 0)
+//         return true;
 
-    return false;
-}
+//     return false;
+// }
 
 struct argNetwork
 {
@@ -217,7 +217,7 @@ void auditor::auditNode(int auditedID)
                 selfNetwork->reassembleSocket(auditedID);
                 // auditedNode->incrementSyncNum();
                 if (EXEC_MODE == DEBUG_MODE)
-                    cout << "Node doesnt trust me" << endl;
+                    cerr << "Node doesnt trust me" << endl;
                 // pthread_exit(NULL);
             }
         }

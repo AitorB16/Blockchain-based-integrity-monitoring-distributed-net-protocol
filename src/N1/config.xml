@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <config>
     <!-- execution modes - 0: SILENT - No output / 1: INTERACTIVE - basic output / 2: DEBUG - full output -->
-    <execution_mode>0</execution_mode>
+    <execution_mode>2</execution_mode>
     <node_self>
         <id>1</id>
         <ip>127.0.0.1</ip>

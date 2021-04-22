@@ -10,7 +10,7 @@ network *network::instance = 0;
 network::network()
 {
     //PARSE XML
-    rapidxml::file<> xmlFile("config.xml");
+    rapidxml::file<> xmlFile(CONFIG_FILE);
     rapidxml::xml_document<> doc;
     rapidxml::xml_node<> *root_node;
     rapidxml::xml_node<> *execMode_node;
@@ -51,7 +51,7 @@ network::network()
 
         //CREATE SERVER
         self->createServerSocket();
-        //ADJACENT NODES
+        //NETWORK NODES
         netNode *tmp_node;
         // adj_node_num = atoi(network_node->first_node("adj_node_num")->value());
         otherNodeNumber = 0;
@@ -65,7 +65,6 @@ network::network()
             pub = get_pub(ID_str);
             tmp_node = new netNode(ID, ip, port, pub);
             tmp_node->createClientSocket();
-            // tmp_node->estConnection();
             otherNodes.push_back(tmp_node);
             otherNodeNumber++;
         }
@@ -73,8 +72,8 @@ network::network()
     }
     catch (const std::exception &e)
     {
-        if (DEBUG_MODE)
-            std::cerr << e.what() << '\n';
+        if (EXEC_MODE == DEBUG_MODE)
+            cerr << e.what() << '\n';
     }
 }
 
@@ -226,8 +225,8 @@ bool network::connectToAllNodes()
     catch (const std::exception &e)
     {
         pthread_mutex_unlock(&lockMaxFD);
-        if (DEBUG_MODE)
-            std::cerr << e.what() << '\n';
+        if (EXEC_MODE == DEBUG_MODE)
+            cerr << e.what() << '\n';
         return false;
     }
 }
@@ -261,8 +260,8 @@ bool network::connectToNode(int ID)
     }
     catch (const std::exception &e)
     {
-        if (DEBUG_MODE)
-            std::cerr << e.what() << '\n';
+        if (EXEC_MODE == DEBUG_MODE)
+            cerr << e.what() << '\n';
         return false;
     }
 }
@@ -279,8 +278,8 @@ void network::reassembleSocket(int ID)
     }
     catch (const std::exception &e)
     {
-        if (DEBUG_MODE)
-            std::cerr << e.what() << '\n';
+        if (EXEC_MODE == DEBUG_MODE)
+            cerr << e.what() << '\n';
     }
 }
 
@@ -301,8 +300,8 @@ void network::reassembleAllSockets()
     }
     catch (const std::exception &e)
     {
-        if (DEBUG_MODE)
-            std::cerr << e.what() << '\n';
+        if (EXEC_MODE == DEBUG_MODE)
+            cerr << e.what() << '\n';
     }
 }
 
@@ -370,8 +369,8 @@ bool network::sendString(int code, int destID, int sourceID, string content)
     }
     catch (const std::exception &e)
     {
-        if (DEBUG_MODE)
-            std::cerr << e.what() << '\n';
+        if (EXEC_MODE == DEBUG_MODE)
+            cerr << e.what() << '\n';
         return false;
     }
 }
@@ -417,8 +416,8 @@ void network::sendStringToAll(int code, int sourceID, string content)
     }
     catch (const std::exception &e)
     {
-        if (DEBUG_MODE)
-            std::cerr << e.what() << '\n';
+        if (EXEC_MODE == DEBUG_MODE)
+            cerr << e.what() << '\n';
     }
 }
 

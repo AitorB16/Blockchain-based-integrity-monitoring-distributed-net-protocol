@@ -3,7 +3,7 @@
 
 #include "baseNode.hpp"
 
-class netNode: public baseNode
+class netNode : public baseNode
 {
 private:
     int syncNum;

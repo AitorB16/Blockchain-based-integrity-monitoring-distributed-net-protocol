@@ -56,7 +56,7 @@ int main(void)
     //Launch the server
     if (pthread_create(&serverTid, NULL, serverThread, (void *)&args) != 0)
     {
-        if (DEBUG_MODE)
+        if (EXEC_MODE == DEBUG_MODE)
             cout << "Error creating server thread" << endl;
         exit(1);
     }
@@ -64,7 +64,7 @@ int main(void)
     //Launch the auditor
     if (pthread_create(&serverTid, NULL, auditorThread, (void *)&args) != 0)
     {
-        if (DEBUG_MODE)
+        if (EXEC_MODE == DEBUG_MODE)
             cout << "Error creating auditor thread" << endl;
         exit(1);
     }
@@ -120,14 +120,20 @@ int main(void)
             case 2:
                 if (!net->isNetworkComprometed())
                 {
-                    //DESACTIVATE AUDITOR TEMPORALY?
+                    //pause auditor
+                    net->getSelfNode()->setChangeFlag(true);
+
+                    if (EXEC_MODE == INTERACTIVE_MODE || EXEC_MODE == DEBUG_MODE)
+                        cout << "Stopping auditor..." << endl;
+
+                    //WAIT FOR AUDITOR_INTERVAL SECONDS TO PAUSE AUDITOR CORRECTLY
+                    sleep(AUDITOR_INTERVAL + 1);
+
+                    //WAIT UNTIL NETWORK IS FULLY OPERATIONAL?
 
                     //Connect to ALL
                     if (net->connectToAllNodes())
                     {
-                        //pause auditor
-                        net->getSelfNode()->setChangeFlag(true);
-
                         //Send request to ALL
 
                         //Just send to connected nodes
@@ -164,9 +170,6 @@ int main(void)
 
                         //Close connection
                         net->reassembleAllSockets();
-
-                        //resume auditor IN REALITY RESUME IT WITH A TIMER THREAD
-                        net->getSelfNode()->setChangeFlag(false);
                     }
                     else
                     {
@@ -178,6 +181,9 @@ int main(void)
                 {
                     cout << "I'm not trusted by the network, cant send data" << endl;
                 }
+
+                //resume auditor (in future we will need a thread)
+                net->getSelfNode()->setChangeFlag(false);
                 break;
             //Update selfhash manualy
             case 3:

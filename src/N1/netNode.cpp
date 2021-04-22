@@ -168,18 +168,7 @@ int netNode::estConnection()
 
 int netNode::sendString(const char *buffer)
 {
-    // bool tmpConnected;
-    // pthread_mutex_lock(&lockConnected);
-    // tmpConnected = connected;
-    // pthread_mutex_unlock(&lockConnected);
-    // if (tmpConnected)
-    // {
     return send(sock, buffer, strlen(buffer), 0);
-    // }
-    // else
-    // {
-    //     return -1;
-    // }
 }
 
 string netNode::recvString()
@@ -190,9 +179,9 @@ string netNode::recvString()
 
     //SELECT
     struct timeval tv;
-    tv.tv_sec = 2;
+    tv.tv_sec = RESPONSE_DELAY_MAX;
     tv.tv_usec = 0;
-    ;
+    
     fd_set fdSet;
     FD_ZERO(&fdSet);
     FD_SET(sock, &fdSet);

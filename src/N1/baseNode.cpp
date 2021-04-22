@@ -1,12 +1,6 @@
 #include "baseNode.hpp"
 using namespace std;
 
-// pthread_mutex_t lockChangeFlag = PTHREAD_MUTEX_INITIALIZER;
-// pthread_mutex_t lockConnected = PTHREAD_MUTEX_INITIALIZER;
-// pthread_mutex_t lockTrustLvl = PTHREAD_MUTEX_INITIALIZER;
-// pthread_mutex_t lockSyncNum = PTHREAD_MUTEX_INITIALIZER;
-// pthread_mutex_t lockSyncNum = PTHREAD_MUTEX_INITIALIZER;
-
 baseNode::baseNode(){
 
 };
@@ -16,20 +10,13 @@ baseNode::baseNode(int ID, char *ip, int port, CryptoPP::RSA::PublicKey pub)
     baseNode::sock = 0;
     baseNode::IP = ip;
     baseNode::port = port;
-    // baseNode::syncNum = 0;
-    // baseNode::trustLvl = TRUST_LEVEL;
     baseNode::changeFlag = false;
-    // baseNode::connected = false;
     baseNode::pub = pub;
     baseNode::hashRecord.push_front("c54008913c9085a5a5b322e1f8eb050b843874c5d00811e1bfba2e9bbbb15a4b");
 
     //init mutextes
     pthread_mutex_init(&lockChangeFlag, NULL);
-    // pthread_mutex_init(&lockConnected, NULL);
-    // pthread_mutex_init(&lockTrustLvl, NULL);
-    // pthread_mutex_init(&lockSyncNum, NULL);
     pthread_mutex_init(&lockHashRecord, NULL);
-    // pthread_mutex_init(&lockConfHashRecord, NULL);
 }
 
 int baseNode::getID()
