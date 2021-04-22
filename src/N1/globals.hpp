@@ -1,0 +1,32 @@
+#ifndef GLOBALS_HPP
+#define GLOBALS_HPP
+
+//EXECUTION MODES:
+#define SILENT_MODE 0
+#define INTERACTIVE_MODE 1
+#define DEBUG_MODE 2
+//global exec var, loaded from config
+extern int EXEC_MODE;
+
+//TIMESPACE TO ACHIEVE CONSISTENCY AT BEGINNING
+#define TIME_SPACE_BEFORE_AUDIT 60
+
+//MAX TIME TO CONSIDER AS DISCONNECTED
+#define RESPONSE_DELAY_MAX 2 //seconds
+
+//TRUST CONTROL
+#define TRUST_LEVEL 5
+#define TRUST_DECREASE_CONST 1
+
+//NETWORK CONTROL
+#define HASH_UPDATE_TIMESPACE 30
+//Percentage of net failing accepted
+#define THRESHOLD 2 / 3
+
+
+//AUDITOR
+#define AUDITOR_INTERVAL 5 //seconds
+//X seconds/DEF_TIMER_AUDIT = TIMES BEIGN AUDITED PER X seconds; X/5 = <2 + TRUST_LEVEL> -> x=50
+#define TIME_RESET_TRUST_LVL 30 //seconds
+
+#endif

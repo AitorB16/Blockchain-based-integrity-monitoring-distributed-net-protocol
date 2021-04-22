@@ -1,20 +1,17 @@
 #ifndef SELFNODE_HPP
 #define SELFNODE_HPP
 
-#include "simpleNode.hpp"
+#include "baseNode.hpp"
 
-class selfNode: public simpleNode
+class selfNode: public baseNode
 {
-protected:
+private:
     CryptoPP::RSA::PrivateKey prv;
 
 public:
     selfNode();
-    selfNode(int ID, const char *ip, int port, CryptoPP::RSA::PublicKey pub, CryptoPP::RSA::PrivateKey prv, string hash);
+    selfNode(int ID, char *ip, int port, CryptoPP::RSA::PublicKey pub, CryptoPP::RSA::PrivateKey prv);
     void createServerSocket();
-    // int sendString(const char *codigo);
-    // int recvString(const char *servResponse);
-    // int serverUP(int max_c);
 };
 
 #endif

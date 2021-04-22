@@ -104,37 +104,37 @@ int get_randomNumber(int maxNum)
     return num;
 }
 
-void splitVectString(vector<string> vectString, int &msgCode, string &clientID, string &selfID, int &syncNumReceived, string &content, string &MsgToVerify, string &MsgSignature)
+void splitVectString(vector<string> vectString, int &msgCode, int &clientID, int &selfID, int &syncNumReceived, string &content, string &MsgToVerify, string &MsgSignature)
 {
 
     msgCode = atoi(vectString.at(0).c_str());         //MSG CODE
-    clientID = vectString.at(1);                      //Source ID
-    selfID = vectString.at(2);                        //ID of current server
+    clientID = atoi(vectString.at(1).c_str());                      //Source ID
+    selfID = atoi(vectString.at(2).c_str());                        //ID of current server
     syncNumReceived = atoi(vectString.at(3).c_str()); //SyncNum
     content = vectString.at(4);                       //Payload of the msg
     MsgSignature = vectString.at(5);                  //Msg signed
 
-    MsgToVerify = to_string(msgCode) + ";" + clientID + ";" + selfID + ";" + to_string(syncNumReceived) + ";" + content; //RandomMsg !!TENER EN CUENTA QUE EL ID DEL SERVER ESTA FIRMADO JUNTO CON LOS CARACTERES ALEATORIOS
+    MsgToVerify = to_string(msgCode) + ";" + to_string(clientID) + ";" + to_string(selfID) + ";" + to_string(syncNumReceived) + ";" + content; //RandomMsg !!TENER EN CUENTA QUE EL ID DEL SERVER ESTA FIRMADO JUNTO CON LOS CARACTERES ALEATORIOS
 }
 
-void splitVectStringBlame(vector<string> vectString, int &msgCode, string &clientID, string &selfID, int &syncNumReceived, int &susMsgCode, string &suspectID, string &auditorID, int &susSyncNumReceived, string &susContent, string &susMsgSignature, string &susMsgToVerify, string &MsgSignature, string &MsgToVerify)
+void splitVectStringBlame(vector<string> vectString, int &msgCode, int &clientID, int &selfID, int &syncNumReceived, int &susMsgCode, int &suspectID, int &auditorID, int &susSyncNumReceived, string &susContent, string &susMsgSignature, string &susMsgToVerify, string &MsgSignature, string &MsgToVerify)
 {
     //Headers
     msgCode = atoi(vectString.at(0).c_str());         //MSG CODE
-    clientID = vectString.at(1);                      //Source ID
-    selfID = vectString.at(2);                        //ID of current server
+    clientID = atoi(vectString.at(1).c_str());                      //Source ID
+    selfID = atoi(vectString.at(2).c_str());                        //ID of current server
     syncNumReceived = atoi(vectString.at(3).c_str()); //SyncNum
 
     //Content
     susMsgCode = atoi(vectString.at(4).c_str());         //Mscg Code from suspicious reply (2)
-    suspectID = vectString.at(5);                        //Suspicious ID
-    auditorID = vectString.at(6);                        //ID of auditor
+    suspectID = atoi(vectString.at(5).c_str());                        //Suspicious ID
+    auditorID = atoi(vectString.at(6).c_str());                        //ID of auditor
     susSyncNumReceived = atoi(vectString.at(7).c_str()); //SyncNum from suspicious reply
     susContent = vectString.at(8);                       //Conflictive hash
     susMsgSignature = vectString.at(9);                  //Signed msg
-    susMsgToVerify = to_string(susMsgCode) + ";" + suspectID + ";" + auditorID + ";" + to_string(susSyncNumReceived) + ";" + susContent;
+    susMsgToVerify = to_string(susMsgCode) + ";" + to_string(suspectID) + ";" + to_string(auditorID) + ";" + to_string(susSyncNumReceived) + ";" + susContent;
 
     //Signature
     MsgSignature = vectString.at(10);
-    MsgToVerify = to_string(msgCode) + ";" + clientID + ";" + selfID + ";" + to_string(syncNumReceived) + ";" + susMsgToVerify + ";" + susMsgSignature;
+    MsgToVerify = to_string(msgCode) + ";" + to_string(clientID) + ";" + to_string(selfID) + ";" + to_string(syncNumReceived) + ";" + susMsgToVerify + ";" + susMsgSignature;
 }

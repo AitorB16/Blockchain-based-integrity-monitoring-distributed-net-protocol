@@ -3,31 +3,33 @@
 using namespace rapidxml;
 using namespace std;
 
-// pthread_mutex_t lockMsgList = PTHREAD_MUTEX_INITIALIZER;
-// pthread_mutex_t lockNetworkComprometed = PTHREAD_MUTEX_INITIALIZER;
-// pthread_mutex_t lockTrustedNodeNumber = PTHREAD_MUTEX_INITIALIZER;
-
 network *network::instance = 0;
 
+
+//move XML to utils
 network::network()
 {
     //PARSE XML
     rapidxml::file<> xmlFile("config.xml");
     rapidxml::xml_document<> doc;
     rapidxml::xml_node<> *root_node;
+    rapidxml::xml_node<> *execMode_node;
     rapidxml::xml_node<> *self_node;
     rapidxml::xml_node<> *network_node;
 
     doc.parse<0>(xmlFile.data());
     root_node = doc.first_node("config");
-
+    execMode_node = root_node->first_node("execution_mode");
     self_node = root_node->first_node("node_self");
     network_node = root_node->first_node("network");
+
+    //EXECUTION MODE
+        EXEC_MODE = atoi(execMode_node->value());
 
     //SELF NODE
     const char *ID_str = self_node->first_node("id")->value();
     int ID = atoi(ID_str);
-    const char *ip = self_node->first_node("ip")->value();
+    char *ip = self_node->first_node("ip")->value();
     int port = atoi(self_node->first_node("port")->value());
     CryptoPP::RSA::PublicKey pub = get_pub(ID_str);
     CryptoPP::RSA::PrivateKey prv = get_prv(ID_str);
@@ -45,12 +47,12 @@ network::network()
     try
     {
 
-        self = new selfNode(ID, ip, port, pub, prv, "c54008913c9085a5a5b322e1f8eb050b843874c5d00811e1bfba2e9bbbb15a4b");
+        self = new selfNode(ID, ip, port, pub, prv);
 
         //CREATE SERVER
         self->createServerSocket();
         //ADJACENT NODES
-        simpleNode *tmp_node;
+        netNode *tmp_node;
         // adj_node_num = atoi(network_node->first_node("adj_node_num")->value());
         otherNodeNumber = 0;
 
@@ -61,7 +63,7 @@ network::network()
             ip = adj->first_node("ip")->value();
             port = atoi(adj->first_node("port")->value());
             pub = get_pub(ID_str);
-            tmp_node = new simpleNode(ID, ip, port, pub);
+            tmp_node = new netNode(ID, ip, port, pub);
             tmp_node->createClientSocket();
             // tmp_node->estConnection();
             otherNodes.push_back(tmp_node);
@@ -88,7 +90,7 @@ selfNode *network::getSelfNode()
     return self;
 }
 
-simpleNode *network::getNode(int ID)
+netNode *network::getNode(int ID)
 {
     for (auto &i : otherNodes)
     {
@@ -105,10 +107,6 @@ int network::getID()
     return self->getID();
 }
 
-// void network::setID(int ID)
-// {
-//     self->setID(ID);
-// }
 int network::getNodeNumber()
 {
     return otherNodeNumber;
@@ -125,7 +123,7 @@ int network::getTrustedNodeNumber()
 void network::updateTrustedNodeNumber()
 {
     int tmpTrustNum = 0;
-    for (auto const &i : otherNodes)
+    for (auto &i : otherNodes)
     {
         if (i->isTrusted())
             tmpTrustNum++;
@@ -135,28 +133,6 @@ void network::updateTrustedNodeNumber()
     pthread_mutex_unlock(&lockTrustedNodeNumber);
 }
 
-bool network::imTrusted()
-{
-    return self->isTrusted();
-}
-// bool network::isTrsuted(int ID)
-// {
-//     for (auto const &i : otherNodes)
-//     {
-//         if (i->getID() == ID)
-//             return i->isTrusted();
-//     }
-//     return false;
-// }
-// int network::trustLvl(int ID)
-// {
-//     for (auto const &i : otherNodes)
-//     {
-//         if (i->getID() == ID)
-//             return i->isTrusted();
-//     }
-//     return false;
-// }
 bool network::isNetworkComprometed()
 {
     bool tmpNetworkComprometed;
@@ -196,7 +172,7 @@ fd_set network::getSetOfSockets()
 void network::printNetwork()
 {
     cout << "Self Node ID: " << self->getID() << " # Hash: " << self->getLastHash() << " # Network is OK" << endl;
-    for (auto const &i : otherNodes)
+    for (auto &i : otherNodes)
     {
         if (i->isTrusted())
             std::cout << "TRUSTED - Node ID: " << i->getID() << " # Hash: " << i->getLastHash() << endl;
@@ -217,16 +193,16 @@ bool network::connectToAllNodes()
             maxFD = 0;
             pthread_mutex_unlock(&lockMaxFD);
 
-            for (auto const &i : otherNodes)
+            for (auto &i : otherNodes)
             {
                 if (i->isTrusted() && !i->isConnected() && !i->getChangeFlag())
                 {
                     if (i->estConnection() == -1)
                     {
-                        if (DEBUG_MODE)
+                        if (EXEC_MODE == DEBUG_MODE)
                             cout << "Error connection: " << i->getID() << endl;
                         //Decrease confidence if node is not avalible
-                        i->decreaseTrustLvlIn(DEFAULT_DECREASE_CNT);
+                        i->decreaseTrustLvlIn(TRUST_DECREASE_CONST);
                     }
                     else
                     {
@@ -260,7 +236,7 @@ bool network::connectToNode(int ID)
 {
     try
     {
-        for (auto const &i : otherNodes)
+        for (auto &i : otherNodes)
         {
             if (i->getID() == ID)
             {
@@ -268,10 +244,10 @@ bool network::connectToNode(int ID)
                 {
                     if (i->estConnection() == -1)
                     {
-                        if (DEBUG_MODE)
+                        if (EXEC_MODE == DEBUG_MODE)
                             cout << "Error connection: " << i->getID() << endl;
                         //Decrease confidence if node is not avalible
-                        i->decreaseTrustLvlIn(DEFAULT_DECREASE_CNT);
+                        i->decreaseTrustLvlIn(TRUST_DECREASE_CONST);
                     }
                     else
                     {
@@ -296,10 +272,10 @@ void network::reassembleSocket(int ID)
 {
     try
     {
-        for (auto const &i : otherNodes)
+        for (auto &i : otherNodes)
             if (i->getID() == ID)
                 // if (i->isTrusted())
-                i->createClientSocket();
+                i->resetClientSocket();
     }
     catch (const std::exception &e)
     {
@@ -315,11 +291,11 @@ void network::reassembleAllSockets()
     {
         FD_ZERO(&readfds); //clear the socket set
         maxFD = -1;        //initialize maxFD
-        for (auto const &i : otherNodes)
+        for (auto &i : otherNodes)
         {
             if (i->isConnected()) // i->isTrusted() &&
             {
-                i->createClientSocket();
+                i->resetClientSocket();
             }
         }
     }
@@ -330,23 +306,23 @@ void network::reassembleAllSockets()
     }
 }
 
-bool network::validateMsg(string selfID, string clientID, int syncNumReceived, string MsgToVerify, string MsgSignature)
+bool network::validateMsg(int selfID, int clientID, int syncNumReceived, string MsgToVerify, string MsgSignature)
 {
     //Verify if msg is for me
     int syncNumStored;
-    simpleNode *sN = getNode(atoi(clientID.c_str()));
+    netNode *nN = getNode(clientID);
 
-    if (atoi(selfID.c_str()) == self->getID())
+    if (selfID == self->getID())
     {
         //Verify if sync number is correct
-        syncNumStored = sN->getSyncNum();
+        syncNumStored = nN->getSyncNum();
         if (syncNumReceived == syncNumStored)
         {
             //Verify if msg is correctly signed
-            if (verify(MsgToVerify, hex2stream(MsgSignature), clientID))
+            if (verify(MsgToVerify, hex2stream(MsgSignature), to_string(clientID)))
             {
                 //Increment sync number
-                sN->incrementSyncNum();
+                nN->incrementSyncNum();
                 //Verification successful
                 return true;
             }
@@ -362,7 +338,7 @@ bool network::sendString(int code, int destID, int sourceID, string content)
 
     try
     {
-        for (auto const &i : otherNodes)
+        for (auto &i : otherNodes)
         {
             if (i->getID() == destID && i->isTrusted() && i->isConnected())
             {
@@ -379,7 +355,7 @@ bool network::sendString(int code, int destID, int sourceID, string content)
                 buffer = msg;
                 if (i->sendString(buffer.c_str()) == -1)
                 {
-                    if (DEBUG_MODE)
+                    if (EXEC_MODE == DEBUG_MODE)
                         cout << "Error sending: " << i->getID() << endl;
                 }
                 else
@@ -408,7 +384,7 @@ void network::sendStringToAll(int code, int sourceID, string content)
     try
     {
         // random = gen_urandom(RANDOM_STR_LEN);
-        for (auto const &i : otherNodes)
+        for (auto &i : otherNodes)
         {
             if (i->isTrusted() && i->isConnected() && !i->getChangeFlag())
             {
@@ -428,7 +404,7 @@ void network::sendStringToAll(int code, int sourceID, string content)
 
                 if (i->sendString(buffer.c_str()) == -1)
                 {
-                    if (DEBUG_MODE)
+                    if (EXEC_MODE == DEBUG_MODE)
                         cout << "Error sending: " << i->getID() << endl;
                 }
                 else
@@ -478,7 +454,7 @@ int network::waitResponses(int resNum, int select_time)
             tmpMaxFD = -1;      //initialize tmpMaxFD
 
             //Count all received connections
-            for (auto const &i : otherNodes)
+            for (auto &i : otherNodes)
             {
                 if (i->isTrusted() && i->isConnected())
                 {
@@ -510,7 +486,7 @@ int network::getTrustedRandomNode()
     {
         //Self node must be counted as well +1; first node starts at 1 -> +1
         random = get_randomNumber(otherNodeNumber + 1 + 1);
-        for (auto const &i : otherNodes)
+        for (auto &i : otherNodes)
         {
             if (i->getID() == random)
             {
@@ -525,28 +501,8 @@ int network::getTrustedRandomNode()
 
 void network::resetTrustLvl()
 {
-    for (auto const &i : otherNodes)
+    for (auto &i : otherNodes)
     {
         i->resetTrustLvl();
     }
 }
-
-// string network::recvString(int ID)
-// {
-//     // try
-//     // {
-//     for (auto const &i : otherNodes)
-//     {
-//         if (i->getID() == ID)
-//         {
-//             return i->recvString();
-//         }
-//     }
-//     throw exception();
-//     // }
-//     // catch (const std::exception &e)
-//     // {
-//     //     // std::cerr << e.what() << '\n';
-//     //     return "ERR";
-//     // }
-// }

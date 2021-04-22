@@ -4,8 +4,6 @@
 #include "network.hpp"
 #include "utils.hpp"
 
-#define DEF_TIMER_WAIT 30 //seconds
-
 class server
 {
 private:

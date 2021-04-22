@@ -46,10 +46,12 @@ int main(void)
 
     int numRes;
 
-    cout << net->getID() << endl;
-
     //Print other nodes
-    net->printNetwork();
+    if (EXEC_MODE == DEBUG_MODE || EXEC_MODE == INTERACTIVE_MODE)
+    {
+        cout << net->getID() << endl;
+        net->printNetwork();
+    }
 
     //Launch the server
     if (pthread_create(&serverTid, NULL, serverThread, (void *)&args) != 0)
@@ -79,17 +81,18 @@ int main(void)
     string input;
     int dest;
 
-    simpleNode sN;
+    // netNode nN;
 
     // string IDNodeHash;
     // bool flagValue;
 
     //WE NEED A SYNC METHOD
+    sleep(5);
 
     while (1)
     {
 
-        if (DEBUG_MODE || INTERACTIVE_MODE)
+        if (EXEC_MODE == DEBUG_MODE || EXEC_MODE == INTERACTIVE_MODE)
         {
 
             cout << "Enter options" << endl;
@@ -125,24 +128,23 @@ int main(void)
                         //pause auditor
                         net->getSelfNode()->setChangeFlag(true);
 
-
                         //Send request to ALL
 
                         //Just send to connected nodes
                         net->sendStringToAll(0, net->getID());
 
-                        //Wait 2/3 of network to send OK Select; timeout 30sec
-                        numRes = net->waitResponses(net->getTrustedNodeNumber() * THRESHOLD, NETWORK_SELECT_WAIT);
+                        //Wait 2/3 of network to send OK Select; timeout RESPONSE_DELAY_MAX
+                        numRes = net->waitResponses(net->getTrustedNodeNumber() * THRESHOLD, RESPONSE_DELAY_MAX);
 
-                        // if (INTERACTIVE_MODE)
-                        //     cout << "NUM RES: " << numRes << endl;
+                        if (EXEC_MODE == DEBUG_MODE)
+                            cout << "NUM RES: " << numRes << endl;
 
                         if (numRes >= net->getTrustedNodeNumber() * THRESHOLD)
                         {
                             net->reassembleAllSockets();
 
                             //In this part just sleep for DEF_TIMER_WAIT, and let the hashUpdate thread work
-                            cout << "!!! You have " << DEF_TIMER_WAIT << " seconds, to work" << endl;
+                            cout << "!!! You have " << HASH_UPDATE_TIMESPACE << " seconds, to work" << endl;
                             cout << "Enter new hash value: " << endl;
                             cin >> input;
                             net->getSelfNode()->updateHashList(input);
@@ -151,8 +153,7 @@ int main(void)
 
                             //Send hash
                             net->sendStringToAll(1, net->getID(), net->getSelfNode()->getLastHash());
-                            if (DEBUG_MODE)
-                                cout << "hash sent" << endl;
+                            cout << "hash sent" << endl;
                         }
                         //Network is comprometed
                         else
@@ -172,6 +173,10 @@ int main(void)
                         //MaxFD !=-1 or error connecting to node
                         cout << "Network is busy, try again later" << endl;
                     }
+                }
+                else
+                {
+                    cout << "I'm not trusted by the network, cant send data" << endl;
                 }
                 break;
             //Update selfhash manualy
@@ -214,6 +219,10 @@ int main(void)
                 break;
             }
         }
+        //Prevent silent mode burning resources
+        if (EXEC_MODE == SILENT_MODE)
+            sleep(TIME_SPACE_BEFORE_AUDIT);
+        //Alternatively, we could add a cin waiting to code 0 - exit
     }
 
     return 0;

@@ -5,11 +5,11 @@ pthread_mutex_t lockFlag = PTHREAD_MUTEX_INITIALIZER;
 selfNode::selfNode(){
 
 };
-selfNode::selfNode(int ID, const char *ip, int port, CryptoPP::RSA::PublicKey pub, CryptoPP::RSA::PrivateKey prv, string hash)
-: simpleNode(ID, ip, port, pub){ //Call to parent constructor
+selfNode::selfNode(int ID, char *ip, int port, CryptoPP::RSA::PublicKey pub, CryptoPP::RSA::PrivateKey prv)
+    : baseNode(ID, ip, port, pub)
+{ //Call to parent constructor
     selfNode::prv = prv;
-    selfNode::hashRecord.push_front(hash);
-
+    // selfNode::hashRecord.push_front(hash);
 }
 
 void selfNode::createServerSocket()
@@ -32,9 +32,9 @@ void selfNode::createServerSocket()
     addr.sin_port = htons(port);
 
     // Convert IPv4 and IPv6 addresses from text to binary form
-    if (inet_pton(AF_INET, selfNode::IP, &addr.sin_addr) <= 0)
+    if (inet_pton(AF_INET, IP, &addr.sin_addr) <= 0)
     {
-        throw std::invalid_argument("Invalid address/ Address not supported");
+        throw std::invalid_argument("Invalid address/ Address not supported self");
     }
 
     // Forcefully attaching socket to the port
@@ -44,4 +44,3 @@ void selfNode::createServerSocket()
         throw std::invalid_argument("Bind failed");
     }
 }
-
