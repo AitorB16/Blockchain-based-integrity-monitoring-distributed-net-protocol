@@ -5,7 +5,6 @@ using namespace std;
 
 network *network::instance = 0;
 
-
 //move XML to utils
 network::network()
 {
@@ -24,7 +23,7 @@ network::network()
     network_node = root_node->first_node("network");
 
     //EXECUTION MODE
-        EXEC_MODE = atoi(execMode_node->value());
+    EXEC_MODE = atoi(execMode_node->value());
 
     //SELF NODE
     const char *ID_str = self_node->first_node("id")->value();
@@ -74,6 +73,7 @@ network::network()
     {
         if (EXEC_MODE == DEBUG_MODE)
             cerr << e.what() << '\n';
+        Logger(e.what());
     }
 }
 
@@ -200,6 +200,7 @@ bool network::connectToAllNodes()
                     {
                         if (EXEC_MODE == DEBUG_MODE)
                             cout << "Error connection: " << i->getID() << endl;
+                        Logger("Error connection: " + to_string(i->getID()));
                         //Decrease confidence if node is not avalible
                         i->decreaseTrustLvlIn(TRUST_DECREASE_CONST);
                     }
@@ -227,6 +228,7 @@ bool network::connectToAllNodes()
         pthread_mutex_unlock(&lockMaxFD);
         if (EXEC_MODE == DEBUG_MODE)
             cerr << e.what() << '\n';
+        Logger(e.what());
         return false;
     }
 }
@@ -245,6 +247,7 @@ bool network::connectToNode(int ID)
                     {
                         if (EXEC_MODE == DEBUG_MODE)
                             cout << "Error connection: " << i->getID() << endl;
+                        Logger("Error connection: " + to_string(i->getID()));
                         //Decrease confidence if node is not avalible
                         i->decreaseTrustLvlIn(TRUST_DECREASE_CONST);
                     }
@@ -262,6 +265,7 @@ bool network::connectToNode(int ID)
     {
         if (EXEC_MODE == DEBUG_MODE)
             cerr << e.what() << '\n';
+        Logger(e.what());
         return false;
     }
 }
@@ -280,6 +284,7 @@ void network::reassembleSocket(int ID)
     {
         if (EXEC_MODE == DEBUG_MODE)
             cerr << e.what() << '\n';
+        Logger(e.what());
     }
 }
 
@@ -302,6 +307,7 @@ void network::reassembleAllSockets()
     {
         if (EXEC_MODE == DEBUG_MODE)
             cerr << e.what() << '\n';
+        Logger(e.what());
     }
 }
 
@@ -315,14 +321,22 @@ bool network::validateMsg(int selfID, int clientID, int syncNumReceived, string 
     {
         //Verify if sync number is correct
         syncNumStored = nN->getSyncNum();
-        if (syncNumReceived == syncNumStored)
+
+        //Verify if msg is correctly signed
+        if (verify(MsgToVerify, hex2stream(MsgSignature), to_string(clientID)))
         {
-            //Verify if msg is correctly signed
-            if (verify(MsgToVerify, hex2stream(MsgSignature), to_string(clientID)))
+            //Standard situation
+            if (syncNumReceived == syncNumStored)
             {
                 //Increment sync number
-                nN->incrementSyncNum();
+                nN->setSyncNum(nN->getSyncNum() + 1);
                 //Verification successful
+                return true;
+            }
+            //Package lost occured, but greater values are valid -> resync
+            else if (syncNumReceived > syncNumStored)
+            {
+                nN->setSyncNum(syncNumReceived + 1);
                 return true;
             }
         }
@@ -356,11 +370,12 @@ bool network::sendString(int code, int destID, int sourceID, string content)
                 {
                     if (EXEC_MODE == DEBUG_MODE)
                         cout << "Error sending: " << i->getID() << endl;
+                    Logger("Error sending: " + to_string(i->getID()));
                 }
                 else
                 {
                     // cout << "Success sending: " << destID << endl;
-                    i->incrementSyncNum();
+                    i->setSyncNum(i->getSyncNum() + 1);
                     return true;
                 }
             }
@@ -371,6 +386,7 @@ bool network::sendString(int code, int destID, int sourceID, string content)
     {
         if (EXEC_MODE == DEBUG_MODE)
             cerr << e.what() << '\n';
+        Logger(e.what());
         return false;
     }
 }
@@ -405,11 +421,12 @@ void network::sendStringToAll(int code, int sourceID, string content)
                 {
                     if (EXEC_MODE == DEBUG_MODE)
                         cout << "Error sending: " << i->getID() << endl;
+                    Logger("Error sending: " + i->getID());
                 }
                 else
                 {
                     // cout << "Success sending: " << i->getID() << endl;
-                    i->incrementSyncNum();
+                    i->setSyncNum(i->getSyncNum() + 1);
                 }
             }
         }
@@ -418,6 +435,7 @@ void network::sendStringToAll(int code, int sourceID, string content)
     {
         if (EXEC_MODE == DEBUG_MODE)
             cerr << e.what() << '\n';
+        Logger(e.what());
     }
 }
 

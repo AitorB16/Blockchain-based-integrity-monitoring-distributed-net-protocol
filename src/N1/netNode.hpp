@@ -26,7 +26,7 @@ public:
     bool isConflictiveHashRepeated(string hash);
     void printConflictiveHashList();
     int getSyncNum();
-    void incrementSyncNum();
+    void setSyncNum(int num);
     bool isTrusted();
     int getTrustLvl();
     void decreaseTrustLvlIn(int sub);

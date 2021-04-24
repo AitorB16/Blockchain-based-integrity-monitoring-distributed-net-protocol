@@ -67,9 +67,14 @@ int auditor::auditorUP()
     if (pthread_create(&trustThread, NULL, resetTrustLvlThread, (void *)&args) != 0)
     {
         if (EXEC_MODE == DEBUG_MODE)
-            cout << "Error creating reset trustlvl thread" << endl;
+            cout << "Aud - Error creating reset trustlvl thread" << endl;
+        Logger("Aud - Error creating reset trustlvl thread");
         exit(1);
     }
+
+    if (EXEC_MODE == DEBUG_MODE)
+        cout << "Aud - Auditor UP" << endl;
+    Logger("Aud - Auditor UP");
 
     while (1)
     {
@@ -87,7 +92,8 @@ int auditor::auditorUP()
             if (selfNetwork->isNetworkComprometed())
             {
                 if (EXEC_MODE == DEBUG_MODE)
-                    cout << "STOPPING AUDITOR, NETWORK COMPROMETED" << endl;
+                    cout << "Aud - STOPPING AUDITOR, NETWORK COMPROMETED" << endl;
+                Logger("Aud - STOPPING AUDITOR, NETWORK COMPROMETED");
                 return -1;
             }
 
@@ -98,7 +104,8 @@ int auditor::auditorUP()
                 selfNetwork->setNetworkToComprometed();
                 //SET ALL nodes to no trust
                 if (EXEC_MODE == DEBUG_MODE || EXEC_MODE == INTERACTIVE_MODE)
-                    cout << "STOPPING AUDITOR, NO TRUSTED NODES LEFT; NETWORK COMPROMETED" << endl;
+                    cout << "Aud - STOPPING AUDITOR, NO TRUSTED NODES LEFT; NETWORK COMPROMETED" << endl;
+                Logger("Aud - STOPPING AUDITOR, NO TRUSTED NODES LEFT; NETWORK COMPROMETED");
                 //End auditor
                 return -1;
             }
@@ -141,7 +148,8 @@ void auditor::auditNode(int auditedID)
 
                     //Attempt of message falsification
                     if (EXEC_MODE == DEBUG_MODE)
-                        cout << "Disconnected message was faked (in auditor)" << endl;
+                        cout << "Aud - Disconnected message was faked" << endl;
+                    Logger("Aud - Disconnected message was faked");
                     //Decrease confidence in node
                     auditedNode->decreaseTrustLvlIn(TRUST_DECREASE_CONST);
                     selfNetwork->reassembleSocket(auditedID);
@@ -155,7 +163,8 @@ void auditor::auditNode(int auditedID)
                     if (content == auditedNode->getLastHash())
                     {
                         if (EXEC_MODE == DEBUG_MODE)
-                            cout << auditedID << " is OK" << endl;
+                            cout << "Aud - " << auditedID << " is OK" << endl;
+                        // Logger(auditedID + " is OK");
                     }
                     //If content isnt the last, no trust on current node
                     else if (auditedNode->isHashRepeated(content))
@@ -183,7 +192,8 @@ void auditor::auditNode(int auditedID)
                             if (numRes >= selfNetwork->getTrustedNodeNumber() * THRESHOLD)
                             {
                                 if (EXEC_MODE == DEBUG_MODE)
-                                    cout << "Hash corrected" << endl;
+                                    cout << "Aud - Hash corrected" << endl;
+                                Logger("Aud - Hash corrected - Hash: " + content + " ID: " + to_string(audID));
                                 auditedNode->updateHashList(content);
                             }
                             //The network doesnt answer if value doesnt need to be updated
@@ -193,7 +203,8 @@ void auditor::auditNode(int auditedID)
                                 if (!auditedNode->isConflictiveHashRepeated(content))
                                     auditedNode->updateConflictiveHashList(content);
                                 if (EXEC_MODE == DEBUG_MODE)
-                                    cout << "Blame to " << auditedID << " ended successfully" << endl;
+                                    cout << "Aud - Blame to " << auditedID << " ended successfully" << endl;
+                                Logger("Aud - Blame to " + to_string(auditedID) + " ended successfully");
                                 auditedNode->decreaseTrustLvlIn(TRUST_DECREASE_CONST);
                             }
 
@@ -203,7 +214,8 @@ void auditor::auditNode(int auditedID)
                         else
                         {
                             if (EXEC_MODE == DEBUG_MODE)
-                                cout << "Network busy" << endl;
+                                cout << "Aud - Network busy" << endl;
+                            Logger("Aud - Network busy");
                         }
                     }
                 }
@@ -217,7 +229,8 @@ void auditor::auditNode(int auditedID)
                 selfNetwork->reassembleSocket(auditedID);
                 // auditedNode->incrementSyncNum();
                 if (EXEC_MODE == DEBUG_MODE)
-                    cerr << "Node doesnt trust me" << endl;
+                    cerr << "Aud - Node doesnt trust me - ID: " << audID << " SyncNum: " << auditedNode->getSyncNum() << endl;
+                Logger("Aud - Node doesnt trust me - ID: " + to_string(audID) + " SyncNum: " + to_string(auditedNode->getSyncNum()));
                 // pthread_exit(NULL);
             }
         }

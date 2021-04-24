@@ -65,10 +65,10 @@ int netNode::getSyncNum()
     pthread_mutex_unlock(&lockSyncNum);
     return tmpSyncNum;
 }
-void netNode::incrementSyncNum()
+void netNode::setSyncNum(int num)
 {
     pthread_mutex_lock(&lockSyncNum);
-    syncNum++;
+    syncNum = num;
     pthread_mutex_unlock(&lockSyncNum);
 }
 
@@ -181,7 +181,7 @@ string netNode::recvString()
     struct timeval tv;
     tv.tv_sec = RESPONSE_DELAY_MAX;
     tv.tv_usec = 0;
-    
+
     fd_set fdSet;
     FD_ZERO(&fdSet);
     FD_SET(sock, &fdSet);

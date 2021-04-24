@@ -15,6 +15,7 @@ vector<string> recvVectStringSocket(int sock)
     {
         if (EXEC_MODE == DEBUG_MODE)
             cerr << e.what() << '\n';
+        Logger(e.what());
         return vs;
     }
 }
@@ -28,7 +29,7 @@ bool replyStringSocket(int code, netNode *nN, int sourceID, int sock, string con
     try
     {
         syncNum = nN->getSyncNum();
-        nN->incrementSyncNum();
+        nN->setSyncNum(nN->getSyncNum() + 1);
 
         //Se especifica MsgID + origen + destino + syncNum
         msg = to_string(code) + ";" + to_string(sourceID) + ";" + to_string(nN->getID()) + ";" + to_string(syncNum) + ";" + content;
@@ -40,12 +41,13 @@ bool replyStringSocket(int code, netNode *nN, int sourceID, int sock, string con
         if (send(sock, buffer.c_str(), strlen(buffer.c_str()), 0) == -1)
         {
             if (EXEC_MODE == DEBUG_MODE)
-                cout << "Error sending: " << nN->getID() << endl;
+                cout << "Srv - Error sending: " << nN->getID() << endl;
+            Logger("Srv - Error sending: " + to_string(nN->getID()));
         }
         else
         {
             if (EXEC_MODE == DEBUG_MODE)
-                cout << "Success sending: " << nN->getID() << endl;
+                cout << "Srv - Success sending: " << nN->getID() << endl;
             return true;
         }
 
@@ -55,6 +57,7 @@ bool replyStringSocket(int code, netNode *nN, int sourceID, int sock, string con
     {
         if (EXEC_MODE == DEBUG_MODE)
             cerr << e.what() << '\n';
+        Logger(e.what());
         return false;
     }
 }
@@ -128,7 +131,8 @@ void *socketThread(void *arg)
     {
         //Someone is connecting fakely
         if (EXEC_MODE == DEBUG_MODE)
-            cout << "Client run out of time" << endl;
+            cout << "Srv - Client run out of time" << endl;
+        Logger("Srv - Client run out of time");
         close(clientSocket);
         pthread_exit(NULL);
     }
@@ -154,7 +158,8 @@ void *socketThread(void *arg)
     {
         //Someone is connecting fakely
         if (EXEC_MODE == DEBUG_MODE)
-            cout << "Disconnected not valid" << endl;
+            cout << "Srv - Disconnected not valid" << endl;
+        Logger("Srv - Disconnected not valid");
         close(clientSocket);
         pthread_exit(NULL);
     }
@@ -164,7 +169,8 @@ void *socketThread(void *arg)
     {
         //Attempt of message falsification
         if (EXEC_MODE == DEBUG_MODE)
-            cout << "Disconnected not trusted, ID " << clientID << endl;
+            cout << "Srv - Disconnected not trusted, ID " << clientID << endl;
+        Logger("Srv - Disconnected not trusted, ID " + to_string(clientID));
         close(clientSocket);
         pthread_exit(NULL);
     }
@@ -183,7 +189,8 @@ void *socketThread(void *arg)
         //Dont decrease trustlvl; someone could be replacing client's identity
         close(clientSocket);
         if (EXEC_MODE == DEBUG_MODE)
-            cout << "Disconnected message was faked (in server)" << nN->getSyncNum() << endl;
+            cout << "Srv - Disconnected message was faked- ID: " << clientID << " SyncNumStored: " << nN->getSyncNum() << " SyncNumReceived: " << syncNumReceived << endl;
+        Logger("Srv - Disconnected message was faked - ID: " + to_string(clientID) + " SyncNumStored: " + to_string(nN->getSyncNum()) + " SyncNumReceived: " + to_string(syncNumReceived));
         pthread_exit(NULL);
     }
 
@@ -204,7 +211,8 @@ void *socketThread(void *arg)
         if (pthread_create(&tid, NULL, timerThread, (void *)&argNetNode) != 0)
         {
             if (EXEC_MODE == DEBUG_MODE)
-                cout << "Error creating flag thread" << endl;
+                cout << "Srv - Error creating flag thread" << endl;
+            Logger("Srv - Error creating flag thread");
         }
 
         //Decrease trustlvl to limit requests and prevent DDOS -- random 2 to make decreasement slower
@@ -251,7 +259,8 @@ void *socketThread(void *arg)
         if (suspectID == selfID)
         {
             if (EXEC_MODE == DEBUG_MODE)
-                cout << "Im being audited" << endl;
+                cout << "Srv - Im being audited" << endl;
+            Logger("Srv - Im being audited");
         }
         //If im not the suspicous node
         else
@@ -292,12 +301,13 @@ void *socketThread(void *arg)
                 if (send(clientSocket, sendBuffer, strlen(sendBuffer), 0) == -1)
                 {
                     if (EXEC_MODE == DEBUG_MODE)
-                        cout << "Error sending: " << auditorID << endl;
+                        cout << "Srv - Error sending: " << auditorID << endl;
+                    Logger("Srv - Error sending: " + to_string(auditorID));
                 }
                 else
                 {
                     if (EXEC_MODE == DEBUG_MODE)
-                        cout << "Success sending: " << auditorID << endl;
+                        cout << "Srv - Success sending: " << auditorID << endl;
                 }
             }
             //Auditor sent me an old msg
@@ -310,14 +320,14 @@ void *socketThread(void *arg)
         //Close connection
         //RESPONSE_DELAY_MAX + 1
         sleep(RESPONSE_DELAY_MAX + 1);
-        // cout << "Disconnected" << endl;
+        // cout << "Srv - Disconnected" << endl;
         close(clientSocket);
         pthread_exit(NULL);
         break;
     default:
         //Close connection
         if (EXEC_MODE == DEBUG_MODE)
-            cout << "Disconnected" << endl;
+            cout << "Srv - Disconnected" << endl;
         close(clientSocket);
         pthread_exit(NULL);
         break;
@@ -341,7 +351,8 @@ int server::serverUP()
         return -1;
 
     if (EXEC_MODE == DEBUG_MODE || EXEC_MODE == INTERACTIVE_MODE)
-        cout << "Server UP" << endl;
+        cout << "Srv - Server UP" << endl;
+    Logger("Srv - Server UP");
 
     while (1)
     {
@@ -359,7 +370,8 @@ int server::serverUP()
         if (pthread_create(&tid[i++], NULL, socketThread, (void *)&args) != 0)
         {
             if (EXEC_MODE == DEBUG_MODE)
-                cout << "Error creating thread to serve client" << endl;
+                cout << "Srv - Error creating thread to serve client" << endl;
+            Logger("Srv - Error creating thread to serve client");
         }
 
         if (i >= max_c)
@@ -381,7 +393,8 @@ int server::serverUP()
     //Close server socket
     close(sock);
     if (EXEC_MODE == DEBUG_MODE || EXEC_MODE == INTERACTIVE_MODE)
-        cout << "SERVER STOPPED" << endl;
+        cout << "Srv - SERVER STOPPED" << endl;
+    Logger("Srv - SERVER STOPPE");
     //Wait max life time of child thread before killing parent thread
     sleep(HASH_UPDATE_TIMESPACE);
     // pthread_exit(NULL);

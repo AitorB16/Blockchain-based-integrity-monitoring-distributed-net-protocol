@@ -13,6 +13,10 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#include <iostream>
+#include <cstdio>
+#include <fstream>
+
 using namespace std;
 
 vector<string> splitBuffer(const char *buffer);
@@ -23,5 +27,7 @@ char * gen_urandom(int len);
 int get_randomNumber(int maxNum);
 void splitVectString(vector<string> vectString, int &msgCode, int &clientID, int &selfID, int &syncNumReceived, string &content, string &MsgToVerify, string &MsgSignature);
 void splitVectStringBlame(vector<string> vectString, int &msgCode, int &clientID, int &selfID, int &syncNumReceived, int &susMsgCode, int &suspectID, int &auditorID, int &susSyncNumReceived, string &susContent, string &susMsgSignature, string &susMsgToVerify, string &MsgSignature, string &MsgToVerify);
+string getCurrentDateTime(string s);
+void Logger(string logMsg);
 
 #endif

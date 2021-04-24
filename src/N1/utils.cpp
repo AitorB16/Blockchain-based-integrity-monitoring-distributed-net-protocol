@@ -108,8 +108,8 @@ void splitVectString(vector<string> vectString, int &msgCode, int &clientID, int
 {
 
     msgCode = atoi(vectString.at(0).c_str());         //MSG CODE
-    clientID = atoi(vectString.at(1).c_str());                      //Source ID
-    selfID = atoi(vectString.at(2).c_str());                        //ID of current server
+    clientID = atoi(vectString.at(1).c_str());        //Source ID
+    selfID = atoi(vectString.at(2).c_str());          //ID of current server
     syncNumReceived = atoi(vectString.at(3).c_str()); //SyncNum
     content = vectString.at(4);                       //Payload of the msg
     MsgSignature = vectString.at(5);                  //Msg signed
@@ -121,14 +121,14 @@ void splitVectStringBlame(vector<string> vectString, int &msgCode, int &clientID
 {
     //Headers
     msgCode = atoi(vectString.at(0).c_str());         //MSG CODE
-    clientID = atoi(vectString.at(1).c_str());                      //Source ID
-    selfID = atoi(vectString.at(2).c_str());                        //ID of current server
+    clientID = atoi(vectString.at(1).c_str());        //Source ID
+    selfID = atoi(vectString.at(2).c_str());          //ID of current server
     syncNumReceived = atoi(vectString.at(3).c_str()); //SyncNum
 
     //Content
     susMsgCode = atoi(vectString.at(4).c_str());         //Mscg Code from suspicious reply (2)
-    suspectID = atoi(vectString.at(5).c_str());                        //Suspicious ID
-    auditorID = atoi(vectString.at(6).c_str());                        //ID of auditor
+    suspectID = atoi(vectString.at(5).c_str());          //Suspicious ID
+    auditorID = atoi(vectString.at(6).c_str());          //ID of auditor
     susSyncNumReceived = atoi(vectString.at(7).c_str()); //SyncNum from suspicious reply
     susContent = vectString.at(8);                       //Conflictive hash
     susMsgSignature = vectString.at(9);                  //Signed msg
@@ -137,4 +137,28 @@ void splitVectStringBlame(vector<string> vectString, int &msgCode, int &clientID
     //Signature
     MsgSignature = vectString.at(10);
     MsgToVerify = to_string(msgCode) + ";" + to_string(clientID) + ";" + to_string(selfID) + ";" + to_string(syncNumReceived) + ";" + susMsgToVerify + ";" + susMsgSignature;
+}
+
+string getCurrentDateTime(string s)
+{
+    time_t now = time(0);
+    struct tm tstruct;
+    char buf[80];
+    tstruct = *localtime(&now);
+    if (s == "now")
+        strftime(buf, sizeof(buf), "%Y-%m-%d %X", &tstruct);
+    else if (s == "date")
+        strftime(buf, sizeof(buf), "%Y-%m-%d", &tstruct);
+    return string(buf);
+};
+
+
+void Logger(string logMsg)
+{
+
+    string filePath = "./logs/" + getCurrentDateTime("date") + ".txt";
+    string now = getCurrentDateTime("now");
+    ofstream ofs(filePath.c_str(), std::ios_base::out | std::ios_base::app);
+    ofs << now << '\t' << logMsg << '\n';
+    ofs.close();
 }
