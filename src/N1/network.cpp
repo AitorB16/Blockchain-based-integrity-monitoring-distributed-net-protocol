@@ -53,7 +53,7 @@ network::network()
         //NETWORK NODES
         netNode *tmp_node;
         // adj_node_num = atoi(network_node->first_node("adj_node_num")->value());
-        otherNodeNumber = 0;
+        netNodeNumber = 0;
 
         for (xml_node<> *adj = network_node->first_node("node"); adj; adj = adj->next_sibling())
         {
@@ -64,10 +64,10 @@ network::network()
             pub = get_pub(ID_str);
             tmp_node = new netNode(ID, ip, port, pub);
             tmp_node->createClientSocket();
-            otherNodes.push_back(tmp_node);
-            otherNodeNumber++;
+            netNodes.push_back(tmp_node);
+            netNodeNumber++;
         }
-        trustedNodeNumber = otherNodeNumber;
+        trustedNodeNumber = netNodeNumber;
     }
     catch (const std::exception &e)
     {
@@ -91,7 +91,7 @@ selfNode *network::getSelfNode()
 
 netNode *network::getNode(int ID)
 {
-    for (auto &i : otherNodes)
+    for (auto &i : netNodes)
     {
         if (i->getID() == ID)
         {
@@ -106,9 +106,9 @@ int network::getID()
     return self->getID();
 }
 
-int network::getNodeNumber()
+int network::getNetNodeNumber()
 {
-    return otherNodeNumber;
+    return netNodeNumber;
 }
 int network::getTrustedNodeNumber()
 {
@@ -122,7 +122,7 @@ int network::getTrustedNodeNumber()
 void network::updateTrustedNodeNumber()
 {
     int tmpTrustNum = 0;
-    for (auto &i : otherNodes)
+    for (auto &i : netNodes)
     {
         if (i->isTrusted())
             tmpTrustNum++;
@@ -171,7 +171,7 @@ fd_set network::getSetOfSockets()
 void network::printNetwork()
 {
     cout << "Self Node ID: " << self->getID() << " # Hash: " << self->getLastHash() << " # Network is OK" << endl;
-    for (auto &i : otherNodes)
+    for (auto &i : netNodes)
     {
         if (i->isTrusted())
             std::cout << "TRUSTED - Node ID: " << i->getID() << " # Hash: " << i->getLastHash() << endl;
@@ -192,7 +192,7 @@ bool network::connectToAllNodes()
             maxFD = 0;
             pthread_mutex_unlock(&lockMaxFD);
 
-            for (auto &i : otherNodes)
+            for (auto &i : netNodes)
             {
                 if (i->isTrusted() && !i->isConnected() && !i->getChangeFlag())
                 {
@@ -237,7 +237,7 @@ bool network::connectToNode(int ID)
 {
     try
     {
-        for (auto &i : otherNodes)
+        for (auto &i : netNodes)
         {
             if (i->getID() == ID)
             {
@@ -275,7 +275,7 @@ void network::reassembleSocket(int ID)
 {
     try
     {
-        for (auto &i : otherNodes)
+        for (auto &i : netNodes)
             if (i->getID() == ID)
                 // if (i->isTrusted())
                 i->resetClientSocket();
@@ -295,7 +295,7 @@ void network::reassembleAllSockets()
     {
         FD_ZERO(&readfds); //clear the socket set
         maxFD = -1;        //initialize maxFD
-        for (auto &i : otherNodes)
+        for (auto &i : netNodes)
         {
             if (i->isConnected()) // i->isTrusted() &&
             {
@@ -337,6 +337,9 @@ bool network::validateMsg(int selfID, int clientID, int syncNumReceived, string 
             else if (syncNumReceived > syncNumStored)
             {
                 nN->setSyncNum(syncNumReceived + 1);
+                if (EXEC_MODE == DEBUG_MODE)
+                    cout << "Package lost, resyncing - ID: " << clientID << endl;
+                Logger("Package lost, resyncing - ID: " + to_string(clientID));
                 return true;
             }
         }
@@ -351,7 +354,7 @@ bool network::sendString(int code, int destID, int sourceID, string content)
 
     try
     {
-        for (auto &i : otherNodes)
+        for (auto &i : netNodes)
         {
             if (i->getID() == destID && i->isTrusted() && i->isConnected())
             {
@@ -399,7 +402,7 @@ void network::sendStringToAll(int code, int sourceID, string content)
     try
     {
         // random = gen_urandom(RANDOM_STR_LEN);
-        for (auto &i : otherNodes)
+        for (auto &i : netNodes)
         {
             if (i->isTrusted() && i->isConnected() && !i->getChangeFlag())
             {
@@ -451,8 +454,9 @@ int network::waitResponses(int resNum, int select_time)
 
     int tmpMaxFD;
 
-    if (resNum == 0)
-        return 1;
+    //Just one node left
+    // if (resNum == 0)
+    //     return 1;
 
     while (1)
     {
@@ -471,7 +475,7 @@ int network::waitResponses(int resNum, int select_time)
             tmpMaxFD = -1;      //initialize tmpMaxFD
 
             //Count all received connections
-            for (auto &i : otherNodes)
+            for (auto &i : netNodes)
             {
                 if (i->isTrusted() && i->isConnected())
                 {
@@ -494,16 +498,16 @@ int network::waitResponses(int resNum, int select_time)
 int network::getTrustedRandomNode()
 {
     int random = -1;
-    //If no node is trusted return -1
-    if (trustedNodeNumber < 2)
+    //If no enough nodes are trusted return -1
+    if (trustedNodeNumber < netNodeNumber * THRESHOLD)
         return random;
 
     //If there are trusted nodes, pick one among them
     while (1)
     {
         //Self node must be counted as well +1; first node starts at 1 -> +1
-        random = get_randomNumber(otherNodeNumber + 1 + 1);
-        for (auto &i : otherNodes)
+        random = get_randomNumber(netNodeNumber + 1 + 1);
+        for (auto &i : netNodes)
         {
             if (i->getID() == random)
             {
@@ -518,7 +522,7 @@ int network::getTrustedRandomNode()
 
 void network::resetTrustLvl()
 {
-    for (auto &i : otherNodes)
+    for (auto &i : netNodes)
     {
         i->resetTrustLvl();
     }

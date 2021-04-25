@@ -98,7 +98,7 @@ int auditor::auditorUP()
             }
 
             auditedID = selfNetwork->getTrustedRandomNode();
-            //No nodes are trusted
+            //No enough nodes are trusted
             if (auditedID == -1)
             {
                 selfNetwork->setNetworkToComprometed();
@@ -186,10 +186,10 @@ void auditor::auditNode(int auditedID)
 
                             //Wait 2/3 of network to send OK Select; timeout 30sec
 
-                            numRes = selfNetwork->waitResponses(selfNetwork->getTrustedNodeNumber() * THRESHOLD, RESPONSE_DELAY_MAX);
+                            numRes = selfNetwork->waitResponses(selfNetwork->getNetNodeNumber() * THRESHOLD, RESPONSE_DELAY_MAX);
 
                             //The network answers if hash value is valid and last.
-                            if (numRes >= selfNetwork->getTrustedNodeNumber() * THRESHOLD)
+                            if (numRes >= selfNetwork->getNetNodeNumber() * THRESHOLD)
                             {
                                 if (EXEC_MODE == DEBUG_MODE)
                                     cout << "Aud - Hash corrected" << endl;

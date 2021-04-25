@@ -30,11 +30,11 @@ class network
 {
 
 private:
-    int otherNodeNumber;
+    int netNodeNumber;
     int trustedNodeNumber;
     bool networkComprometed;
     selfNode *self;
-    std::list<netNode *> otherNodes;
+    std::list<netNode *> netNodes;
 
     //set of socket descriptors and control
     fd_set readfds;
@@ -53,7 +53,7 @@ public:
     selfNode *getSelfNode();
     netNode *getNode(int ID);
     int getID();
-    int getNodeNumber();
+    int getNetNodeNumber();
     int getTrustedNodeNumber();
     void updateTrustedNodeNumber();
     bool isNetworkComprometed();

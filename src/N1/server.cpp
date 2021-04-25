@@ -96,6 +96,10 @@ void *timerThread(void *arg)
     if (nN->getChangeFlag())
         nN->setChangeFlag(false);
 
+    if (EXEC_MODE == DEBUG_MODE)
+        cout << "Srv - Change flag desactivated (time run out) - ID: " << nN->getID() << endl;
+    Logger("Srv - Change flag desactivated (time run out) - ID: " + to_string(nN->getID()));
+
     pthread_exit(NULL);
 }
 
@@ -129,7 +133,7 @@ void *socketThread(void *arg)
     //Timeout
     if (0 == select(clientSocket + 1, &fdSet, NULL, NULL, &tv))
     {
-        //Someone is connecting fakely
+        //Client didnt send msg
         if (EXEC_MODE == DEBUG_MODE)
             cout << "Srv - Client run out of time" << endl;
         Logger("Srv - Client run out of time");
@@ -167,7 +171,7 @@ void *socketThread(void *arg)
     //If not trusted, close connection
     if (!net->getNode(clientID)->isTrusted())
     {
-        //Attempt of message falsification
+        //No trusted node trying to connect
         if (EXEC_MODE == DEBUG_MODE)
             cout << "Srv - Disconnected not trusted, ID " << clientID << endl;
         Logger("Srv - Disconnected not trusted, ID " + to_string(clientID));
@@ -205,6 +209,9 @@ void *socketThread(void *arg)
 
         //Activate flag using locks
         nN->setChangeFlag(true);
+        if (EXEC_MODE == DEBUG_MODE)
+            cout << "Srv - Change flag activated of - ID: " << clientID << endl;
+        Logger("Srv - Change flag activated of - ID: " + to_string(clientID));
 
         //Launch timer to desactive flag
         pthread_t tid;
@@ -231,6 +238,10 @@ void *socketThread(void *arg)
         {
             //Update hash of network node
             nN->updateHashList(content);
+
+            if (EXEC_MODE == DEBUG_MODE)
+                cout << "Srv - New hash value of - ID: " << clientID << " Hash: " << content << endl;
+            Logger("Srv - New hash value of - ID: " + to_string(clientID) + " Hash: " + content);
 
             //Desactive flag
             nN->setChangeFlag(false);
@@ -301,13 +312,14 @@ void *socketThread(void *arg)
                 if (send(clientSocket, sendBuffer, strlen(sendBuffer), 0) == -1)
                 {
                     if (EXEC_MODE == DEBUG_MODE)
-                        cout << "Srv - Error sending: " << auditorID << endl;
-                    Logger("Srv - Error sending: " + to_string(auditorID));
+                        cout << "Srv - Error sending update hash reply - ID: " << auditorID << endl;
+                    Logger("Srv - Error sending update hash reply - ID: " + to_string(auditorID));
                 }
                 else
                 {
                     if (EXEC_MODE == DEBUG_MODE)
-                        cout << "Srv - Success sending: " << auditorID << endl;
+                        cout << "Srv - Success sending update hash reply - ID: " << auditorID << endl;
+                    Logger("Srv - Success sending update hash reply - ID: " + to_string(auditorID));
                 }
             }
             //Auditor sent me an old msg
@@ -339,7 +351,7 @@ int server::serverUP()
     int newSocket;
     int sock = selfNetwork->getSelfNode()->getSock();
     sockaddr_in addr = selfNetwork->getSelfNode()->getAddr();
-    int max_c = selfNetwork->getNodeNumber(); //At the begining all nodes are trusted
+    int max_c = selfNetwork->getNetNodeNumber(); //At the begining all nodes are trusted
     int addrlen = sizeof(addr);
     int i = 0;
     argNetworkSocket args;

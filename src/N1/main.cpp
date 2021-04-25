@@ -94,41 +94,162 @@ int main(void)
     while (1)
     {
 
-        // if (EXEC_MODE == DEBUG_MODE || EXEC_MODE == INTERACTIVE_MODE)
-        // {
-
-        cout << "Enter options" << endl;
-        cin >> option;
-
-        switch (option)
+        if (EXEC_MODE == DEBUG_MODE || EXEC_MODE == INTERACTIVE_MODE)
         {
-        //Close infraestructure
-        case 0:
-            cout << "Exiting infra" << endl;
-            Logger("Exiting infra");
-            exit(0);
-            break;
-        //Print Network
-        case 1:
-            if (net->isNetworkComprometed())
+
+            cout << "Enter options" << endl;
+            cin >> option;
+
+            switch (option)
             {
-                cout << "I'm not trusted by the network, not recieving updates anymore; my data is not valid" << endl;
-                Logger("I'm not trusted by the network, not recieving updates anymore; my data is not valid");
+            //Close infraestructure
+            case 0:
+                cout << "Exiting infra" << endl;
+                Logger("Exiting infra");
+                exit(0);
+                break;
+            //Print Network
+            case 1:
+                if (net->isNetworkComprometed())
+                {
+                    cout << "I'm not trusted by the network, not recieving updates anymore; my data is not valid" << endl;
+                    Logger("I'm not trusted by the network, not recieving updates anymore; my data is not valid");
+                }
+                else
+                {
+                    net->printNetwork();
+                }
+                break;
+            //BCAST request to send + timeout + count
+            case 2:
+                if (!net->isNetworkComprometed())
+                {
+                    //pause auditor
+                    net->getSelfNode()->setChangeFlag(true);
+
+                    if (EXEC_MODE == INTERACTIVE_MODE || EXEC_MODE == DEBUG_MODE)
+                        cout << "Pausing auditor..." << endl;
+                    Logger("Pausing auditor...");
+
+                    //WAIT FOR AUDITOR_INTERVAL SECONDS TO PAUSE AUDITOR CORRECTLY
+                    sleep(AUDITOR_INTERVAL + 1);
+
+                    //WAIT UNTIL NETWORK IS FULLY OPERATIONAL?
+
+                    //Connect to ALL
+                    if (net->connectToAllNodes())
+                    {
+                        //Send request to ALL
+
+                        //Just send to connected nodes
+                        net->sendStringToAll(0, net->getID());
+
+                        //Wait 2/3 of network to send OK Select; timeout RESPONSE_DELAY_MAX
+                        numRes = net->waitResponses(net->getNetNodeNumber() * THRESHOLD, RESPONSE_DELAY_MAX);
+
+                        if (EXEC_MODE == DEBUG_MODE)
+                            cout << "Num replies: " << numRes << endl;
+
+                        if (numRes >= net->getNetNodeNumber() * THRESHOLD)
+                        {
+                            net->reassembleAllSockets();
+
+                            //In this part just sleep for DEF_TIMER_WAIT, and let the hashUpdate thread work
+                            cout << "!!! You have " << HASH_UPDATE_TIMESPACE << " seconds, to work" << endl;
+                            cout << "Enter new hash value: " << endl;
+                            cin >> input;
+                            Logger("Hash updated: " + input);
+                            net->getSelfNode()->updateHashList(input);
+
+                            net->connectToAllNodes();
+
+                            //Send hash
+                            net->sendStringToAll(1, net->getID(), net->getSelfNode()->getLastHash());
+                            cout << "hash sent" << endl;
+                            Logger("hash sent");
+                        }
+                        //Network is comprometed
+                        else
+                        {
+                            cout << "Network is comprometed" << endl;
+                            Logger("Network is comprometed");
+                            net->setNetworkToComprometed();
+                        }
+
+                        //Close connection
+                        net->reassembleAllSockets();
+                    }
+                    else
+                    {
+                        //MaxFD !=-1
+                        cout << "Network is busy, try again later" << endl;
+                        Logger("Network is busy, try again later");
+                    }
+                    //resume auditor
+                    net->getSelfNode()->setChangeFlag(false);
+                    if (EXEC_MODE == DEBUG_MODE)
+                        cout << "Auditor resumed" << endl;
+                    Logger("Auditor resumed");
+                }
+                else
+                {
+                    cout << "I'm not trusted by the network, cant send data" << endl;
+                    Logger("I'm not trusted by the network, cant send data");
+                }
+                break;
+            //Update selfhash manualy
+            case 3:
+                if (net->isNetworkComprometed())
+                {
+                    cout << "I'm not trusted by the network, not recieving updates anymore; my data is not valid" << endl;
+                    Logger("I'm not trusted by the network, not recieving updates anymore; my data is not valid");
+                }
+                else
+                {
+                    cout << "enter new hash" << endl;
+                    cin >> input;
+                    Logger("Hash updated secretly: " + input);
+                    net->getSelfNode()->updateHashList(input);
+                }
+                break;
+            //Print hash record and conflictive hash record
+            case 4:
+                if (net->isNetworkComprometed())
+                {
+                    cout << "I'm not trusted by the network, not recieving updates anymore; my data is not valid" << endl;
+                    Logger("I'm not trusted by the network, not recieving updates anymore; my data is not valid");
+                }
+                else
+                {
+                    cout << "enter node ID" << endl;
+                    cin >> dest;
+                    if (dest != net->getSelfNode()->getID())
+                    {
+                        cout << endl
+                             << "GOOD HASH RECORD" << endl;
+                        net->getNode(dest)->printHashList();
+                        cout << endl
+                             << "BAD HASH RECORD" << endl;
+                        net->getNode(dest)->printConflictiveHashList();
+                        cout << endl;
+                    }
+                }
+                break;
+
+            default:
+                break;
             }
-            else
-            {
-                net->printNetwork();
-            }
-            break;
-        //BCAST request to send + timeout + count
-        case 2:
+        }
+        //SILENT MODE
+        else
+        {
             if (!net->isNetworkComprometed())
             {
+                //Wait for user interaction
+                cin >> input;
+
                 //pause auditor
                 net->getSelfNode()->setChangeFlag(true);
-
-                if (EXEC_MODE == INTERACTIVE_MODE || EXEC_MODE == DEBUG_MODE)
-                    cout << "Pausing auditor..." << endl;
                 Logger("Pausing auditor...");
 
                 //WAIT FOR AUDITOR_INTERVAL SECONDS TO PAUSE AUDITOR CORRECTLY
@@ -145,19 +266,19 @@ int main(void)
                     net->sendStringToAll(0, net->getID());
 
                     //Wait 2/3 of network to send OK Select; timeout RESPONSE_DELAY_MAX
-                    numRes = net->waitResponses(net->getTrustedNodeNumber() * THRESHOLD, RESPONSE_DELAY_MAX);
+                    numRes = net->waitResponses(net->getNetNodeNumber() * THRESHOLD, RESPONSE_DELAY_MAX);
 
-                    if (EXEC_MODE == DEBUG_MODE)
-                        cout << "Num replies: " << numRes << endl;
+                    // if (EXEC_MODE == DEBUG_MODE)
+                    //     cout << "Num replies: " << numRes << endl;
 
-                    if (numRes >= net->getTrustedNodeNumber() * THRESHOLD)
+                    if (numRes >= net->getNetNodeNumber() * THRESHOLD)
                     {
                         net->reassembleAllSockets();
 
                         //In this part just sleep for DEF_TIMER_WAIT, and let the hashUpdate thread work
                         cout << "!!! You have " << HASH_UPDATE_TIMESPACE << " seconds, to work" << endl;
-                        cout << "Enter new hash value: " << endl;
-                        cin >> input;
+                        sleep(HASH_UPDATE_TIMESPACE);
+
                         Logger("Hash updated: " + input);
                         net->getSelfNode()->updateHashList(input);
 
@@ -165,13 +286,11 @@ int main(void)
 
                         //Send hash
                         net->sendStringToAll(1, net->getID(), net->getSelfNode()->getLastHash());
-                        cout << "hash sent" << endl;
                         Logger("hash sent");
                     }
                     //Network is comprometed
                     else
                     {
-                        cout << "Network is comprometed" << endl;
                         Logger("Network is comprometed");
                         net->setNetworkToComprometed();
                     }
@@ -181,71 +300,28 @@ int main(void)
                 }
                 else
                 {
-                    //MaxFD !=-1 or error connecting to node
-                    cout << "Network is busy, try again later" << endl;
+                    //MaxFD !=-1
                     Logger("Network is busy, try again later");
                 }
+                //resume auditor
+                net->getSelfNode()->setChangeFlag(false);
+                Logger("Auditor resumed");
             }
             else
             {
-                cout << "I'm not trusted by the network, cant send data" << endl;
                 Logger("I'm not trusted by the network, cant send data");
-            }
 
-            //resume auditor (in future we will need a thread)
-            net->getSelfNode()->setChangeFlag(false);
-            if (EXEC_MODE == DEBUG_MODE)
-                cout << "Auditor resumed" << endl;
-            Logger("Auditor resumed");
-            break;
-        //Update selfhash manualy
-        case 3:
-            if (net->isNetworkComprometed())
-            {
-                cout << "I'm not trusted by the network, not recieving updates anymore; my data is not valid" << endl;
-                Logger("I'm not trusted by the network, not recieving updates anymore; my data is not valid");
-            }
-            else
-            {
-                cout << "enter new hash" << endl;
-                cin >> input;
-                Logger("Hash updated secretly: " + input);
-                net->getSelfNode()->updateHashList(input);
-            }
-            break;
-        //Print hash record and conflictive hash record
-        case 4:
-            if (net->isNetworkComprometed())
-            {
-                cout << "I'm not trusted by the network, not recieving updates anymore; my data is not valid" << endl;
-                Logger("I'm not trusted by the network, not recieving updates anymore; my data is not valid");
-            }
-            else
-            {
-                cout << "enter node ID" << endl;
-                cin >> dest;
-                if (dest != net->getSelfNode()->getID())
-                {
-                    cout << endl
-                         << "GOOD HASH RECORD" << endl;
-                    net->getNode(dest)->printHashList();
-                    cout << endl
-                         << "BAD HASH RECORD" << endl;
-                    net->getNode(dest)->printConflictiveHashList();
-                    cout << endl;
-                }
-            }
-            break;
+                //Prevent running out of resources
+                sleep(TIME_SPACE_BEFORE_AUDIT);
 
-        default:
-            break;
+                //Exit method
+            }
+            //Prevent silent mode burning resources
+            // if (EXEC_MODE == SILENT_MODE)
+            //     sleep(TIME_SPACE_BEFORE_AUDIT);
+            //Alternatively, we could add a cin waiting to code 0 - exit
         }
     }
-    //Prevent silent mode burning resources
-    // if (EXEC_MODE == SILENT_MODE)
-    //     sleep(TIME_SPACE_BEFORE_AUDIT);
-    //Alternatively, we could add a cin waiting to code 0 - exit
-    // }
 
     return 0;
 }

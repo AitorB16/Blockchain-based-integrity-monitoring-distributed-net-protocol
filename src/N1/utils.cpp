@@ -152,10 +152,8 @@ string getCurrentDateTime(string s)
     return string(buf);
 };
 
-
 void Logger(string logMsg)
 {
-
     string filePath = "./logs/" + getCurrentDateTime("date") + ".txt";
     string now = getCurrentDateTime("now");
     ofstream ofs(filePath.c_str(), std::ios_base::out | std::ios_base::app);
