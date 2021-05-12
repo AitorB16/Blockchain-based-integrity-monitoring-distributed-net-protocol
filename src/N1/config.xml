@@ -2,6 +2,7 @@
 <config>
     <!-- execution modes - 0: SILENT - No output / 1: INTERACTIVE - basic output / 2: DEBUG - full output -->
     <execution_mode>2</execution_mode>
+    <passwd_sha256>64e8df328d36f9688a4ad76208ce3fc06ac582552531ff968742645c43df1930</passwd_sha256> <!--puntokoma-->
     <node_self>
         <id>1</id>
         <ip>127.0.0.1</ip>

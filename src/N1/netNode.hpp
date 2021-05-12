@@ -23,7 +23,7 @@ public:
     netNode(int ID, char *ip, int port, CryptoPP::RSA::PublicKey pub);
     string getLastConflictiveHash();
     void updateConflictiveHashList(string hash);
-    bool isConflictiveHashRepeated(string hash);
+    // bool isConflictiveHashRepeated(string hash);
     void printConflictiveHashList();
     int getSyncNum();
     void setSyncNum(int num);

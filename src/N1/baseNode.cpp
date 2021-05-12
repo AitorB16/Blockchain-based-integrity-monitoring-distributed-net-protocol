@@ -12,11 +12,13 @@ baseNode::baseNode(int ID, char *ip, int port, CryptoPP::RSA::PublicKey pub)
     baseNode::port = port;
     baseNode::changeFlag = false;
     baseNode::pub = pub;
-    baseNode::hashRecord.push_front("c54008913c9085a5a5b322e1f8eb050b843874c5d00811e1bfba2e9bbbb15a4b");
+    baseNode::hashRecord.push_front(FIRST_HASH);
+    baseNode::nodeBChain.push_back(FIRST_HASH);
 
     //init mutextes
     pthread_mutex_init(&lockChangeFlag, NULL);
     pthread_mutex_init(&lockHashRecord, NULL);
+    pthread_mutex_init(&lockNodeBChain, NULL);
 }
 
 int baseNode::getID()
@@ -69,24 +71,36 @@ void baseNode::updateHashList(string hash)
     pthread_mutex_unlock(&lockHashRecord);
 }
 
-bool baseNode::isHashRepeated(string hash)
-{
-    bool isIn = false;
-    pthread_mutex_lock(&lockHashRecord);
-    for (auto &i : hashRecord)
-    {
-        if (i == hash)
-        {
-            isIn = true;
-        }
-    }
-    pthread_mutex_unlock(&lockHashRecord);
-    return isIn;
-}
 void baseNode::printHashList()
 {
     //mutex?
     for (auto &i : hashRecord)
+    {
+        cout << "* " << i << endl;
+    }
+}
+
+string baseNode::getLastNodeBChain()
+{
+    string hash;
+    pthread_mutex_lock(&lockNodeBChain);
+    hash = nodeBChain.front();
+    pthread_mutex_unlock(&lockNodeBChain);
+    return hash;
+}
+void baseNode::updateNodeBChain(string hash)
+{
+    string prevHash;
+    pthread_mutex_lock(&lockNodeBChain);
+    prevHash = nodeBChain.front();
+    hash = stream2hex(hashText(prevHash + "\n" + hash));
+    nodeBChain.push_front(hash);
+    pthread_mutex_unlock(&lockNodeBChain);
+}
+void baseNode::printNodeBchain()
+{
+    //mutex?
+    for (auto &i : nodeBChain)
     {
         cout << "* " << i << endl;
     }

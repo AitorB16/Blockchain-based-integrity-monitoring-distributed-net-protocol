@@ -28,16 +28,18 @@
 //     return false;
 // }
 
-struct argNetwork
-{
-    network *net;
-};
+// struct argNetwork
+// {
+//     network *net;
+// };
 
 void *resetTrustLvlThread(void *arg)
 {
 
-    struct argNetwork *args = (struct argNetwork *)arg;
-    network *net = args->net;
+    // struct argNetwork *args = (struct argNetwork *)arg;
+    // network *net = args->net;
+
+    network *net = net->getInstance();
 
     //Default sleep time
     sleep(TIME_RESET_TRUST_LVL);
@@ -58,13 +60,13 @@ int auditor::auditorUP()
 {
     int auditedID;
 
-    argNetwork args;
-    args.net = selfNetwork;
+    // argNetwork args;
+    // args.net = selfNetwork;
 
     pthread_t trustThread;
     pthread_t auditResetThread;
 
-    if (pthread_create(&trustThread, NULL, resetTrustLvlThread, (void *)&args) != 0)
+    if (pthread_create(&trustThread, NULL, resetTrustLvlThread, NULL) != 0)
     {
         if (EXEC_MODE == DEBUG_MODE)
             cout << "Aud - Error creating reset trustlvl thread" << endl;
@@ -130,7 +132,7 @@ void auditor::auditNode(int auditedID)
 
     if (selfNetwork->connectToNode(auditedID))
     {
-        if (selfNetwork->sendString(2, auditedID, selfNetwork->getID()))
+        if (selfNetwork->sendString(2, auditedID, selfNetwork->getSelfNode()->getID()))
         {
             sock = auditedNode->getSock();
             try
@@ -167,11 +169,11 @@ void auditor::auditNode(int auditedID)
                         // Logger(auditedID + " is OK");
                     }
                     //If content isnt the last, no trust on current node
-                    else if (auditedNode->isHashRepeated(content))
-                    {
-                        auditedNode->decreaseTrustLvlIn(TRUST_LEVEL);
-                    }
-                    //If content is new, blame node.
+                    // else if (auditedNode->isHashRepeated(content))
+                    // {
+                    //     auditedNode->decreaseTrustLvlIn(TRUST_LEVEL);
+                    // }
+                    //If content is different, blame node.
                     else
                     {
                         //BCAST TO OTHER NODES
@@ -182,9 +184,9 @@ void auditor::auditNode(int auditedID)
                             //Send just to connected nodes
                             msg = MsgToVerify + ";" + MsgSignature;
 
-                            selfNetwork->sendStringToAll(3, selfNetwork->getID(), msg);
+                            selfNetwork->sendStringToAll(3, selfNetwork->getSelfNode()->getID(), msg);
 
-                            //Wait 2/3 of network to send OK Select; timeout 30sec
+                            //Wait 2/3 of network to send OK Select; timeout RESPONSE_DELAY_MAX sec
 
                             numRes = selfNetwork->waitResponses(selfNetwork->getNetNodeNumber() * THRESHOLD, RESPONSE_DELAY_MAX);
 
@@ -195,16 +197,29 @@ void auditor::auditNode(int auditedID)
                                     cout << "Aud - Hash corrected" << endl;
                                 Logger("Aud - Hash corrected - Hash: " + content + " ID: " + to_string(audID));
                                 auditedNode->updateHashList(content);
+                                auditedNode->updateNodeBChain(content);
                             }
                             //The network doesnt answer if value doesnt need to be updated
                             else
                             {
                                 //Insert conflictive hash in list
-                                if (!auditedNode->isConflictiveHashRepeated(content))
+                                if (auditedNode->getLastConflictiveHash() != content)
+                                {
                                     auditedNode->updateConflictiveHashList(content);
+                                    auditedNode->updateNodeBChain(content);
+                                    if (EXEC_MODE == DEBUG_MODE)
+                                        cout << "Aud - Last conflictive Hash updated - ID: " << auditedID << " Hash: " << content;
+                                    Logger("Aud  - Last conflictive Hash updated - ID: " + to_string(auditedID) + " Hash: " + content);
+                                }
+                                else
+                                {
+                                    if (EXEC_MODE == DEBUG_MODE)
+                                        cout << "Aud - Last conflictive hash values eq to blamed - ID: " << auditedID << " Hash: " << content << endl;
+                                    Logger("Aud - Last conflictive hash values eq to blamed - ID: " + to_string(auditedID) + " Hash: " + content);
+                                }
                                 if (EXEC_MODE == DEBUG_MODE)
-                                    cout << "Aud - Blame to " << auditedID << " ended successfully" << endl;
-                                Logger("Aud - Blame to " + to_string(auditedID) + " ended successfully");
+                                    cout << "Aud - Blame to - ID: " << auditedID << " ended successfully" << endl;
+                                Logger("Aud - Blame to - ID: " + to_string(auditedID) + " ended successfully");
                                 auditedNode->decreaseTrustLvlIn(TRUST_DECREASE_CONST);
                             }
 

@@ -62,43 +62,44 @@ bool replyStringSocket(int code, netNode *nN, int sourceID, int sock, string con
     }
 }
 
-server::server(){
-
-};
-server::server(network *selfNetwork)
-{
-    server::selfNetwork = selfNetwork;
-};
-
-struct argNetnodeSocket
+struct argNetNodeTime
 {
     netNode *nN;
-    int s;
+    int timeToWork;
 };
 
-struct argNetworkSocket
+struct argSocket
 {
-    network *net;
     int s;
 };
 
 void *timerThread(void *arg)
 {
 
-    struct argNetnodeSocket *args = (struct argNetnodeSocket *)arg;
+    struct argNetNodeTime *args = (struct argNetNodeTime *)arg;
     // int clientSocket = args->s;
     netNode *nN = args->nN;
+    int timeToWork = args->timeToWork;
 
     //Default wait time + 2, or + 1 (tolerate small delays)
-    sleep(HASH_UPDATE_TIMESPACE + 2);
+    if (timeToWork > HASH_UPDATE_TIMESPACE_MAX || timeToWork < HASH_UPDATE_TIMESPACE_MIN)
+    {
+        sleep(HASH_UPDATE_TIMESPACE_MAX + 2);
+    }
+    else
+    {
+        sleep(timeToWork + 2);
+    }
 
     //If changeflag ative, set it to false
     if (nN->getChangeFlag())
+    {
         nN->setChangeFlag(false);
 
-    if (EXEC_MODE == DEBUG_MODE)
-        cout << "Srv - Change flag desactivated (time run out) - ID: " << nN->getID() << endl;
-    Logger("Srv - Change flag desactivated (time run out) - ID: " + to_string(nN->getID()));
+        if (EXEC_MODE == DEBUG_MODE)
+            cout << "Srv - Change flag desactivated (time run out) - ID: " << nN->getID() << endl;
+        Logger("Srv - Change flag desactivated (time run out) - ID: " + to_string(nN->getID()));
+    }
 
     pthread_exit(NULL);
 }
@@ -107,19 +108,22 @@ void *socketThread(void *arg)
 {
     char sendBuffer[4096];
 
-    struct argNetworkSocket *args = (struct argNetworkSocket *)arg;
-    argNetnodeSocket argNetNode;
-
+    struct argSocket *args = (struct argSocket *)arg;
     int clientSocket = args->s;
+
+    argNetNodeTime argNNodeTime;
+
     netNode *nN;
 
-    network *net = args->net;
+    network *net = net->getInstance();
     vector<string> vectString;
     int msgCode, clientID, selfID, syncNumReceived, syncNumStored, suspectID, auditorID, susSyncNumReceived, susMsgCode;
 
     string MsgToVerify, MsgSignature, content, susMsgToVerify, susMsgSignature, susContent;
 
     bool msgValid = false;
+
+    pthread_t timerTid;
 
     //SELECT TO PREVENT BLOCKING RESOURCES
     struct timeval tv;
@@ -168,8 +172,11 @@ void *socketThread(void *arg)
         pthread_exit(NULL);
     }
 
+    //get connected corresponeded node
+    nN = net->getNode(clientID);
+
     //If not trusted, close connection
-    if (!net->getNode(clientID)->isTrusted())
+    if (!nN->isTrusted())
     {
         //No trusted node trying to connect
         if (EXEC_MODE == DEBUG_MODE)
@@ -178,9 +185,6 @@ void *socketThread(void *arg)
         close(clientSocket);
         pthread_exit(NULL);
     }
-
-    //get connected corresponeded node
-    nN = net->getNode(clientID);
 
     //Validate received msg
     msgValid = net->validateMsg(selfID, clientID, syncNumReceived, MsgToVerify, MsgSignature);
@@ -198,10 +202,6 @@ void *socketThread(void *arg)
         pthread_exit(NULL);
     }
 
-    //Create new args of netNode
-    argNetNode.nN = nN;
-    argNetNode.s = clientSocket;
-
     switch (msgCode)
     {
     //Modify current hash request
@@ -213,9 +213,12 @@ void *socketThread(void *arg)
             cout << "Srv - Change flag activated of - ID: " << clientID << endl;
         Logger("Srv - Change flag activated of - ID: " + to_string(clientID));
 
+        //Create new args of netNode
+        argNNodeTime.nN = nN;
+        argNNodeTime.timeToWork = atoi(content.c_str());
+
         //Launch timer to desactive flag
-        pthread_t tid;
-        if (pthread_create(&tid, NULL, timerThread, (void *)&argNetNode) != 0)
+        if (pthread_create(&timerTid, NULL, timerThread, (void *)&argNNodeTime) != 0)
         {
             if (EXEC_MODE == DEBUG_MODE)
                 cout << "Srv - Error creating flag thread" << endl;
@@ -236,13 +239,22 @@ void *socketThread(void *arg)
         //Flag must be previously active
         if (nN->getChangeFlag())
         {
-            //Update hash of network node
-            nN->updateHashList(content);
+            //Update hash of network node if a change has happened
+            if (nN->getLastHash() != content)
+            {
+                nN->updateHashList(content);
+                nN->updateNodeBChain(content);
 
-            if (EXEC_MODE == DEBUG_MODE)
-                cout << "Srv - New hash value of - ID: " << clientID << " Hash: " << content << endl;
-            Logger("Srv - New hash value of - ID: " + to_string(clientID) + " Hash: " + content);
-
+                if (EXEC_MODE == DEBUG_MODE)
+                    cout << "Srv - New hash value of - ID: " << clientID << " Hash: " << content << endl;
+                Logger("Srv - New hash value of - ID: " + to_string(clientID) + " Hash: " + content);
+            }
+            else
+            {
+                if (EXEC_MODE == DEBUG_MODE)
+                    cout << "Srv - Last hash values eq to received - ID: " << clientID << " Hash: " << content << endl;
+                Logger("Srv - Last hash values eq to received - ID: " + to_string(clientID) + " Hash: " + content);
+            }
             //Desactive flag
             nN->setChangeFlag(false);
         }
@@ -276,15 +288,27 @@ void *socketThread(void *arg)
         //If im not the suspicous node
         else
         {
-            //The content isnt on the list
-            if (!net->getNode(suspectID)->isHashRepeated(susContent))
+            //The content isnt the last in the list
+            if (net->getNode(suspectID)->getLastHash() != susContent)
             {
                 //Non repudiation from suspicious
                 if (verify(susMsgToVerify, hex2stream(susMsgSignature), to_string(suspectID)))
                 {
                     //Insert conflictive hash in list
-                    if (!net->getNode(suspectID)->isConflictiveHashRepeated(susContent))
+                    if (net->getNode(suspectID)->getLastConflictiveHash() != susContent)
+                    {
                         net->getNode(suspectID)->updateConflictiveHashList(susContent);
+                        net->getNode(suspectID)->updateNodeBChain(susContent);
+                        if (EXEC_MODE == DEBUG_MODE)
+                            cout << "Srv - Last conflictive Hash updated - ID: " << suspectID << " Hash: " << susContent;
+                        Logger("Srv - Last conflictive Hash updated - ID: " + to_string(suspectID) + " Hash: " + susContent);
+                    }
+                    else
+                    {
+                        if (EXEC_MODE == DEBUG_MODE)
+                            cout << "Srv - Last conflictive hash values eq to blamed - ID: " << clientID << " Hash: " << susContent << endl;
+                        Logger("Srv - Last conflictive hash values eq to blamed - ID: " + to_string(clientID) + " Hash: " + susContent);
+                    }
 
                     //Decrease confidence on suspicious
                     net->getNode(suspectID)->decreaseTrustLvlIn(TRUST_DECREASE_CONST);
@@ -302,7 +326,8 @@ void *socketThread(void *arg)
                 }
             }
             //OK the auditor node isnt updated
-            else if (net->getNode(suspectID)->getLastHash() == susContent)
+            // else if (net->getNode(suspectID)->getLastHash() == susContent)
+            else
             {
                 //Decrease 1 unit confidence on auditor to prevent DDoS
                 net->getNode(auditorID)->decreaseTrustLvlIn(TRUST_DECREASE_CONST);
@@ -322,12 +347,6 @@ void *socketThread(void *arg)
                     Logger("Srv - Success sending update hash reply - ID: " + to_string(auditorID));
                 }
             }
-            //Auditor sent me an old msg
-            else
-            {
-                //Decrease confidence on auditor
-                net->getNode(auditorID)->decreaseTrustLvlIn(TRUST_DECREASE_CONST);
-            }
         }
         //Close connection
         //RESPONSE_DELAY_MAX + 1
@@ -346,6 +365,14 @@ void *socketThread(void *arg)
     }
 }
 
+server::server(){
+
+};
+server::server(network *selfNetwork)
+{
+    server::selfNetwork = selfNetwork;
+};
+
 int server::serverUP()
 {
     int newSocket;
@@ -354,7 +381,7 @@ int server::serverUP()
     int max_c = selfNetwork->getNetNodeNumber(); //At the begining all nodes are trusted
     int addrlen = sizeof(addr);
     int i = 0;
-    argNetworkSocket args;
+    argSocket args;
 
     pthread_t tid[max_c];
 
@@ -376,7 +403,6 @@ int server::serverUP()
             return -1;
 
         // printf("Connection accepted from %s:%d\n", inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
-        args.net = selfNetwork;
         args.s = newSocket;
 
         if (pthread_create(&tid[i++], NULL, socketThread, (void *)&args) != 0)
@@ -406,9 +432,9 @@ int server::serverUP()
     close(sock);
     if (EXEC_MODE == DEBUG_MODE || EXEC_MODE == INTERACTIVE_MODE)
         cout << "Srv - SERVER STOPPED" << endl;
-    Logger("Srv - SERVER STOPPE");
+    Logger("Srv - SERVER STOPPED");
     //Wait max life time of child thread before killing parent thread
-    sleep(HASH_UPDATE_TIMESPACE);
+    sleep(HASH_UPDATE_TIMESPACE_MAX);
     // pthread_exit(NULL);
     return -1;
 }

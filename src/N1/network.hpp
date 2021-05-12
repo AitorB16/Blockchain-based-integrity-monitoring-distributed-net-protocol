@@ -36,6 +36,8 @@ private:
     selfNode *self;
     std::list<netNode *> netNodes;
 
+    string passwdSHA256;
+
     //set of socket descriptors and control
     fd_set readfds;
     int maxFD;
@@ -52,15 +54,14 @@ public:
     static network *getInstance();
     selfNode *getSelfNode();
     netNode *getNode(int ID);
-    int getID();
     int getNetNodeNumber();
     int getTrustedNodeNumber();
     void updateTrustedNodeNumber();
     bool isNetworkComprometed();
     void setNetworkToComprometed();
+    bool verifyPasswd(string inPswd);
     int getMaxFD();
     void setMaxFD(int fd);
-    fd_set getSetOfSockets();
     void printNetwork();
     bool connectToAllNodes();
     bool connectToNode(int ID);

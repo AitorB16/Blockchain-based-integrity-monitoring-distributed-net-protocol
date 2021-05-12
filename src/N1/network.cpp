@@ -13,17 +13,22 @@ network::network()
     rapidxml::xml_document<> doc;
     rapidxml::xml_node<> *root_node;
     rapidxml::xml_node<> *execMode_node;
+    rapidxml::xml_node<> *passwdSHA256_node;
     rapidxml::xml_node<> *self_node;
     rapidxml::xml_node<> *network_node;
 
     doc.parse<0>(xmlFile.data());
     root_node = doc.first_node("config");
     execMode_node = root_node->first_node("execution_mode");
+    passwdSHA256_node = root_node->first_node("passwd_sha256");
     self_node = root_node->first_node("node_self");
     network_node = root_node->first_node("network");
 
     //EXECUTION MODE
     EXEC_MODE = atoi(execMode_node->value());
+
+    //PASSWD SHA256
+    passwdSHA256 = passwdSHA256_node->value();
 
     //SELF NODE
     const char *ID_str = self_node->first_node("id")->value();
@@ -101,10 +106,10 @@ netNode *network::getNode(int ID)
     return NULL;
 }
 
-int network::getID()
-{
-    return self->getID();
-}
+// int network::getID()
+// {
+//     return self->getID();
+// }
 
 int network::getNetNodeNumber()
 {
@@ -146,6 +151,13 @@ void network::setNetworkToComprometed()
     networkComprometed = true;
     pthread_mutex_unlock(&lockNetworkComprometed);
 }
+bool network::verifyPasswd(string inPswd)
+{
+    if (passwdSHA256 == stream2hex(hashText(inPswd)))
+        return true;
+    else
+        return false;
+}
 int network::getMaxFD()
 {
     int tmpMaxFD;
@@ -162,39 +174,38 @@ void network::setMaxFD(int fd)
     pthread_mutex_unlock(&lockMaxFD);
 }
 
-fd_set network::getSetOfSockets()
-{
-    //Mutex?
-    return readfds;
-}
-
 void network::printNetwork()
 {
     cout << "Self Node ID: " << self->getID() << " # Hash: " << self->getLastHash() << " # Network is OK" << endl;
     for (auto &i : netNodes)
     {
         if (i->isTrusted())
-            std::cout << "TRUSTED - Node ID: " << i->getID() << " # Hash: " << i->getLastHash() << endl;
+            std::cout << "TRUSTED - Node ID: " << i->getID() << " # Hash: " << i->getLastHash() << " # BCHash: " << i->getLastNodeBChain() << endl;
         else
-            std::cout << "NOT TRUSTED - Node ID: " << i->getID() << endl;
+            std::cout << "NOT TRUSTED - Node ID: " << i->getID() << " # Hash: " << i->getLastConflictiveHash() << " # BCHash: " << i->getLastNodeBChain() << endl;
     }
 }
 
 bool network::connectToAllNodes()
 {
+    int tmpMFD;
     try
     {
         pthread_mutex_lock(&lockMaxFD);
+        tmpMFD = maxFD;
+        pthread_mutex_unlock(&lockMaxFD);
+
         //No other global connections active
-        if (maxFD == -1)
+        if (tmpMFD == -1)
         {
             //To prevent other threads to enter a num !=-1 and release mutex
+            pthread_mutex_lock(&lockMaxFD);
             maxFD = 0;
             pthread_mutex_unlock(&lockMaxFD);
 
             for (auto &i : netNodes)
             {
-                if (i->isTrusted() && !i->isConnected() && !i->getChangeFlag())
+                if (i->isTrusted() && !i->isConnected()) //&& !i->getChangeFlag())
                 {
                     if (i->estConnection() == -1)
                     {
@@ -209,7 +220,9 @@ bool network::connectToAllNodes()
                         //Add sockets for select
                         FD_SET(i->getSock(), &readfds);
                         if (i->getSock() > maxFD)
+                        {
                             maxFD = i->getSock();
+                        }
                         // cout << "Success connection: " << i->getID() << endl;
                     }
                 }
@@ -219,13 +232,11 @@ bool network::connectToAllNodes()
         //Network busy, sockets no reassembled
         else
         {
-            pthread_mutex_unlock(&lockMaxFD);
             return false;
         }
     }
     catch (const std::exception &e)
     {
-        pthread_mutex_unlock(&lockMaxFD);
         if (EXEC_MODE == DEBUG_MODE)
             cerr << e.what() << '\n';
         Logger(e.what());
@@ -293,8 +304,6 @@ void network::reassembleAllSockets()
 {
     try
     {
-        FD_ZERO(&readfds); //clear the socket set
-        maxFD = -1;        //initialize maxFD
         for (auto &i : netNodes)
         {
             if (i->isConnected()) // i->isTrusted() &&
@@ -302,6 +311,8 @@ void network::reassembleAllSockets()
                 i->resetClientSocket();
             }
         }
+        FD_ZERO(&readfds); //clear the socket set
+        maxFD = -1;        //initialize maxFD
     }
     catch (const std::exception &e)
     {
@@ -404,7 +415,7 @@ void network::sendStringToAll(int code, int sourceID, string content)
         // random = gen_urandom(RANDOM_STR_LEN);
         for (auto &i : netNodes)
         {
-            if (i->isTrusted() && i->isConnected() && !i->getChangeFlag())
+            if (i->isTrusted() && i->isConnected()) //&& !i->getChangeFlag())
             {
 
                 //Get and increment Sync Number

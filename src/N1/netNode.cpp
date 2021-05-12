@@ -33,20 +33,20 @@ void netNode::updateConflictiveHashList(string hash)
     conflictiveHashRecord.push_front(hash);
     pthread_mutex_unlock(&lockConfHashRecord);
 }
-bool netNode::isConflictiveHashRepeated(string hash)
-{
-    bool isIn = false;
-    pthread_mutex_lock(&lockConfHashRecord);
-    for (auto &i : conflictiveHashRecord)
-    {
-        if (i == hash)
-        {
-            isIn = true;
-        }
-    }
-    pthread_mutex_unlock(&lockConfHashRecord);
-    return isIn;
-}
+// bool netNode::isConflictiveHashRepeated(string hash)
+// {
+//     bool isIn = false;
+//     pthread_mutex_lock(&lockConfHashRecord);
+//     for (auto &i : conflictiveHashRecord)
+//     {
+//         if (i == hash)
+//         {
+//             isIn = true;
+//         }
+//     }
+//     pthread_mutex_unlock(&lockConfHashRecord);
+//     return isIn;
+// }
 
 void netNode::printConflictiveHashList()
 {

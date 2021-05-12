@@ -22,14 +22,19 @@ extern int EXEC_MODE;
 #define TRUST_DECREASE_CONST 1
 
 //NETWORK CONTROL
-#define HASH_UPDATE_TIMESPACE 30
+#define HASH_UPDATE_TIMESPACE_MAX 120
+#define HASH_UPDATE_TIMESPACE_MIN 5
 //Percentage of net failing accepted
 #define THRESHOLD 2 / 3
 
 
 //AUDITOR
 #define AUDITOR_INTERVAL 5 //seconds
-//X seconds/DEF_TIMER_AUDIT = TIMES BEIGN AUDITED PER X seconds; X/5 = <2 + TRUST_LEVEL> -> x=50
-#define TIME_RESET_TRUST_LVL 30 //seconds
+//theoretically every AUDITOR_INTERVAL seconds, each node is audited (real random); AUDITOR_INTERVAL * (TRUST_LEVEL + 2), to ensure not reseting trustlvl too fast.
+#define TIME_RESET_TRUST_LVL AUDITOR_INTERVAL * (TRUST_LEVEL + 2) //seconds
+
+#define FIRST_HASH "0000000000000000000000000000000000000000000000000000000000000000"
 
 #endif
+
+//X seconds/DEF_TIMER_AUDIT = TIMES BEIGN AUDITED PER X seconds; X/5 = <2 + TRUST_LEVEL> -> x=50

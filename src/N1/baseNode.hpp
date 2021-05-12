@@ -22,7 +22,6 @@
 #include "crypto.hpp"
 #include "globals.hpp"
 
-
 class baseNode
 {
 protected:
@@ -34,10 +33,12 @@ protected:
     bool changeFlag;
     CryptoPP::RSA::PublicKey pub;
     list<string> hashRecord;
+    list<string> nodeBChain;
 
     //Mutex
     pthread_mutex_t lockChangeFlag;
     pthread_mutex_t lockHashRecord;
+    pthread_mutex_t lockNodeBChain;
 
 public:
     baseNode();
@@ -50,8 +51,10 @@ public:
     sockaddr_in getAddr();
     string getLastHash();
     void updateHashList(string hash);
-    bool isHashRepeated(string hash);
     void printHashList();
+    string getLastNodeBChain();
+    void updateNodeBChain(string hash);
+    void printNodeBchain();
 };
 
 #endif

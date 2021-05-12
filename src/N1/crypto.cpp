@@ -1,6 +1,18 @@
 #include "crypto.hpp"
 // using namespace CryptoPP;
 
+
+std::string hashText(std::string inputText){
+    CryptoPP::SHA256 hash;
+    std::string digest;
+    
+    hash.Update((const byte*)inputText.data(), inputText.size());
+    digest.resize(hash.DigestSize());
+    hash.Final((byte*)&digest[0]);
+
+    return digest;
+}
+
 void generate_keys(std::string key_ID)
 {
     CryptoPP::AutoSeededRandomPool prng;
