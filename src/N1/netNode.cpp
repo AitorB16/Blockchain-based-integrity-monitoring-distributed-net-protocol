@@ -10,9 +10,10 @@ netNode::netNode(int ID, char *ip, int port, CryptoPP::RSA::PublicKey pub)
     netNode::syncNum = 0;
     netNode::trustLvl = TRUST_LEVEL;
     netNode::connected = false;
+    netNode::conflictiveHashRecord.push_back(FIRST_HASH_SEC);
 
     //init mutextes
-    pthread_mutex_init(&lockConnected, NULL);
+    // pthread_mutex_init(&lockConnected, NULL);
     pthread_mutex_init(&lockTrustLvl, NULL);
     pthread_mutex_init(&lockSyncNum, NULL);
     pthread_mutex_init(&lockConfHashRecord, NULL);
@@ -22,15 +23,15 @@ string netNode::getLastConflictiveHash()
 {
     string hash;
     pthread_mutex_lock(&lockConfHashRecord);
-    hash = conflictiveHashRecord.front();
+    hash = conflictiveHashRecord.back();
     pthread_mutex_unlock(&lockConfHashRecord);
-    return hash;
+    return splitBuffer(hash.c_str()).at(0);
 }
 
 void netNode::updateConflictiveHashList(string hash)
 {
     pthread_mutex_lock(&lockConfHashRecord);
-    conflictiveHashRecord.push_front(hash);
+    conflictiveHashRecord.push_back(hash + "; sec - " + to_string(nodeBChain.size()));
     pthread_mutex_unlock(&lockConfHashRecord);
 }
 // bool netNode::isConflictiveHashRepeated(string hash)
@@ -112,9 +113,9 @@ void netNode::resetTrustLvl()
 bool netNode::isConnected()
 {
     bool tmpConnected = false;
-    pthread_mutex_lock(&lockConnected);
+    // pthread_mutex_lock(&lockConnected);
     tmpConnected = connected;
-    pthread_mutex_unlock(&lockConnected);
+    // pthread_mutex_unlock(&lockConnected);
     return tmpConnected;
 }
 
@@ -146,9 +147,9 @@ void netNode::resetClientSocket()
     }
 
     //Set connected to false
-    pthread_mutex_lock(&lockConnected);
+    // pthread_mutex_lock(&lockConnected);
     connected = false;
-    pthread_mutex_unlock(&lockConnected);
+    // pthread_mutex_unlock(&lockConnected);
 }
 
 int netNode::estConnection()
@@ -159,9 +160,9 @@ int netNode::estConnection()
     }
     else
     {
-        pthread_mutex_lock(&lockConnected);
+        // pthread_mutex_lock(&lockConnected);
         connected = true;
-        pthread_mutex_unlock(&lockConnected);
+        // pthread_mutex_unlock(&lockConnected);
         return 0;
     }
 }

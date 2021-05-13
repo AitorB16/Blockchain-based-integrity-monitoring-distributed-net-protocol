@@ -13,7 +13,7 @@ private:
     list<string> conflictiveHashRecord;
 
     //Mutex
-    pthread_mutex_t lockConnected;
+    // pthread_mutex_t lockConnected;
     pthread_mutex_t lockTrustLvl;
     pthread_mutex_t lockSyncNum;
     pthread_mutex_t lockConfHashRecord;

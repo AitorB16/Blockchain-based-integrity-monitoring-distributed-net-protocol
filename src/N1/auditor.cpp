@@ -96,7 +96,7 @@ int auditor::auditorUP()
                 if (EXEC_MODE == DEBUG_MODE)
                     cout << "Aud - STOPPING AUDITOR, NETWORK COMPROMETED" << endl;
                 Logger("Aud - STOPPING AUDITOR, NETWORK COMPROMETED");
-                return -1;
+                return 1;
             }
 
             auditedID = selfNetwork->getTrustedRandomNode();
@@ -109,7 +109,7 @@ int auditor::auditorUP()
                     cout << "Aud - STOPPING AUDITOR, NO TRUSTED NODES LEFT; NETWORK COMPROMETED" << endl;
                 Logger("Aud - STOPPING AUDITOR, NO TRUSTED NODES LEFT; NETWORK COMPROMETED");
                 //End auditor
-                return -1;
+                return 1;
             }
             auditNode(auditedID);
         }
@@ -119,7 +119,7 @@ int auditor::auditorUP()
 
 void auditor::auditNode(int auditedID)
 {
-    int sock, msgCode, audID, selfID, syncNumReceived, numRes;
+    int msgCode, audID, selfID, syncNumReceived, numRes;
 
     string MsgToVerify, MsgSignature, content, msg;
     bool msgValid;
@@ -134,7 +134,6 @@ void auditor::auditNode(int auditedID)
     {
         if (selfNetwork->sendString(2, auditedID, selfNetwork->getSelfNode()->getID()))
         {
-            sock = auditedNode->getSock();
             try
             {
                 msg = auditedNode->recvString();
@@ -178,60 +177,61 @@ void auditor::auditNode(int auditedID)
                     {
                         //BCAST TO OTHER NODES
                         //Connect to ALL
-                        if (selfNetwork->connectToAllNodes())
-                        {
+                        // if (selfNetwork->connectToAllNodes())
+                        // {
+                        selfNetwork->connectToAllNodes();
 
-                            //Send just to connected nodes
-                            msg = MsgToVerify + ";" + MsgSignature;
+                        //Send just to connected nodes
+                        msg = MsgToVerify + ";" + MsgSignature;
 
-                            selfNetwork->sendStringToAll(3, selfNetwork->getSelfNode()->getID(), msg);
+                        selfNetwork->sendStringToAll(3, selfNetwork->getSelfNode()->getID(), msg);
 
-                            //Wait 2/3 of network to send OK Select; timeout RESPONSE_DELAY_MAX sec
+                        //Wait 2/3 of network to send OK Select; timeout RESPONSE_DELAY_MAX sec
 
-                            numRes = selfNetwork->waitResponses(selfNetwork->getNetNodeNumber() * THRESHOLD, RESPONSE_DELAY_MAX);
+                        numRes = selfNetwork->waitResponses(selfNetwork->getNetNodeNumber() * THRESHOLD, RESPONSE_DELAY_MAX);
 
-                            //The network answers if hash value is valid and last.
-                            if (numRes >= selfNetwork->getNetNodeNumber() * THRESHOLD)
-                            {
-                                if (EXEC_MODE == DEBUG_MODE)
-                                    cout << "Aud - Hash corrected" << endl;
-                                Logger("Aud - Hash corrected - Hash: " + content + " ID: " + to_string(audID));
-                                auditedNode->updateHashList(content);
-                                auditedNode->updateNodeBChain(content);
-                            }
-                            //The network doesnt answer if value doesnt need to be updated
-                            else
-                            {
-                                //Insert conflictive hash in list
-                                if (auditedNode->getLastConflictiveHash() != content)
-                                {
-                                    auditedNode->updateConflictiveHashList(content);
-                                    auditedNode->updateNodeBChain(content);
-                                    if (EXEC_MODE == DEBUG_MODE)
-                                        cout << "Aud - Last conflictive Hash updated - ID: " << auditedID << " Hash: " << content;
-                                    Logger("Aud  - Last conflictive Hash updated - ID: " + to_string(auditedID) + " Hash: " + content);
-                                }
-                                else
-                                {
-                                    if (EXEC_MODE == DEBUG_MODE)
-                                        cout << "Aud - Last conflictive hash values eq to blamed - ID: " << auditedID << " Hash: " << content << endl;
-                                    Logger("Aud - Last conflictive hash values eq to blamed - ID: " + to_string(auditedID) + " Hash: " + content);
-                                }
-                                if (EXEC_MODE == DEBUG_MODE)
-                                    cout << "Aud - Blame to - ID: " << auditedID << " ended successfully" << endl;
-                                Logger("Aud - Blame to - ID: " + to_string(auditedID) + " ended successfully");
-                                auditedNode->decreaseTrustLvlIn(TRUST_DECREASE_CONST);
-                            }
-
-                            //Close connection
-                            selfNetwork->reassembleAllSockets();
-                        }
-                        else
+                        //The network answers if hash value is valid and last.
+                        if (numRes >= selfNetwork->getNetNodeNumber() * THRESHOLD)
                         {
                             if (EXEC_MODE == DEBUG_MODE)
-                                cout << "Aud - Network busy" << endl;
-                            Logger("Aud - Network busy");
+                                cout << "Aud - Hash corrected" << endl;
+                            Logger("Aud - Hash corrected - Hash: " + content + " ID: " + to_string(audID));
+                            auditedNode->updateHashList(content);
+                            auditedNode->updateNodeBChain(content);
                         }
+                        //The network doesnt answer if value doesnt need to be updated
+                        else
+                        {
+                            //Insert conflictive hash in list
+                            if (auditedNode->getLastConflictiveHash() != content)
+                            {
+                                auditedNode->updateConflictiveHashList(content);
+                                auditedNode->updateNodeBChain(content);
+                                if (EXEC_MODE == DEBUG_MODE)
+                                    cout << "Aud - Last conflictive Hash updated - ID: " << auditedID << " Hash: " << content;
+                                Logger("Aud  - Last conflictive Hash updated - ID: " + to_string(auditedID) + " Hash: " + content);
+                            }
+                            else
+                            {
+                                if (EXEC_MODE == DEBUG_MODE)
+                                    cout << "Aud - Last conflictive hash values eq to blamed - ID: " << auditedID << " Hash: " << content << endl;
+                                Logger("Aud - Last conflictive hash values eq to blamed - ID: " + to_string(auditedID) + " Hash: " + content);
+                            }
+                            if (EXEC_MODE == DEBUG_MODE)
+                                cout << "Aud - Blame to - ID: " << auditedID << " ended successfully" << endl;
+                            Logger("Aud - Blame to - ID: " + to_string(auditedID) + " ended successfully");
+                            auditedNode->decreaseTrustLvlIn(TRUST_DECREASE_CONST);
+                        }
+
+                        //Close connection
+                        selfNetwork->reassembleAllSockets();
+                        // }
+                        // else
+                        // {
+                        //     if (EXEC_MODE == DEBUG_MODE)
+                        //         cout << "Aud - Network busy" << endl;
+                        //     Logger("Aud - Network busy");
+                        // }
                     }
                 }
             }

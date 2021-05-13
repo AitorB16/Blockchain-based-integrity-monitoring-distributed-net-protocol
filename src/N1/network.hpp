@@ -45,7 +45,7 @@ private:
     //Mutex
     pthread_mutex_t lockTrustedNodeNumber;
     pthread_mutex_t lockNetworkComprometed;
-    pthread_mutex_t lockMaxFD;
+    // pthread_mutex_t lockMaxFD;
 
     static network *instance;
     network();
@@ -60,8 +60,8 @@ public:
     bool isNetworkComprometed();
     void setNetworkToComprometed();
     bool verifyPasswd(string inPswd);
-    int getMaxFD();
-    void setMaxFD(int fd);
+    // int getMaxFD();
+    // void setMaxFD(int fd);
     void printNetwork();
     bool connectToAllNodes();
     bool connectToNode(int ID);
@@ -73,6 +73,8 @@ public:
     int waitResponses(int resNum, int select_time);
     int getTrustedRandomNode();
     void resetTrustLvl();
+    void pauseAuditor();
+    void resumeAuditor();
     // void sendPackage();sendPackage Google buffer, XML
 };
 

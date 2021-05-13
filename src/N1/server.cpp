@@ -168,6 +168,7 @@ void *socketThread(void *arg)
         if (EXEC_MODE == DEBUG_MODE)
             cout << "Srv - Disconnected not valid" << endl;
         Logger("Srv - Disconnected not valid");
+        sleep(RESPONSE_DELAY_MAX + 1);
         close(clientSocket);
         pthread_exit(NULL);
     }
@@ -182,6 +183,8 @@ void *socketThread(void *arg)
         if (EXEC_MODE == DEBUG_MODE)
             cout << "Srv - Disconnected not trusted, ID " << clientID << endl;
         Logger("Srv - Disconnected not trusted, ID " + to_string(clientID));
+        //prevent sending ACK
+        sleep(RESPONSE_DELAY_MAX + 1);
         close(clientSocket);
         pthread_exit(NULL);
     }
@@ -195,10 +198,12 @@ void *socketThread(void *arg)
         //Attempt of message falsification
 
         //Dont decrease trustlvl; someone could be replacing client's identity
-        close(clientSocket);
         if (EXEC_MODE == DEBUG_MODE)
             cout << "Srv - Disconnected message was faked- ID: " << clientID << " SyncNumStored: " << nN->getSyncNum() << " SyncNumReceived: " << syncNumReceived << endl;
         Logger("Srv - Disconnected message was faked - ID: " + to_string(clientID) + " SyncNumStored: " + to_string(nN->getSyncNum()) + " SyncNumReceived: " + to_string(syncNumReceived));
+        //prevent sending ACK
+        sleep(RESPONSE_DELAY_MAX + 1);
+        close(clientSocket);
         pthread_exit(NULL);
     }
 
@@ -229,8 +234,25 @@ void *socketThread(void *arg)
         // if (get_randomNumber(2) == 0)
         //     nN->decreaseTrustLvlIn(TRUST_DECREASE_CONST);
 
+        //Reply with ACK msg
+        strcpy(sendBuffer, "ACK");
+        if (send(clientSocket, sendBuffer, strlen(sendBuffer), 0) == -1)
+        {
+            if (EXEC_MODE == DEBUG_MODE)
+                cout << "Srv - Error sending ACK reply - ID: " << clientID << endl;
+            Logger("Srv - Error sending ACK reply - ID: " + to_string(clientID));
+        }
+        else
+        {
+            if (EXEC_MODE == DEBUG_MODE)
+                cout << "Srv - Success sending ACK reply - ID: " << clientID << endl;
+            Logger("Srv - Success sending ACK reply - ID: " + to_string(clientID));
+        }
+
+        sleep(RESPONSE_DELAY_MAX + 1);
         //Closing socket is same as ACK
         close(clientSocket);
+
         pthread_exit(NULL);
         break;
 
@@ -242,12 +264,21 @@ void *socketThread(void *arg)
             //Update hash of network node if a change has happened
             if (nN->getLastHash() != content)
             {
-                nN->updateHashList(content);
-                nN->updateNodeBChain(content);
+                // if (nN->getLastConflictiveHash() != content)
+                // {
+                    nN->updateHashList(content);
+                    nN->updateNodeBChain(content);
 
-                if (EXEC_MODE == DEBUG_MODE)
-                    cout << "Srv - New hash value of - ID: " << clientID << " Hash: " << content << endl;
-                Logger("Srv - New hash value of - ID: " + to_string(clientID) + " Hash: " + content);
+                    if (EXEC_MODE == DEBUG_MODE)
+                        cout << "Srv - New hash value of - ID: " << clientID << " Hash: " << content << endl;
+                    Logger("Srv - New hash value of - ID: " + to_string(clientID) + " Hash: " + content);
+                // }
+                // else
+                // {
+                //     if (EXEC_MODE == DEBUG_MODE)
+                //         cout << "Srv - Last conflictive hash values eq to received - ID: " << clientID << " Hash: " << content << endl;
+                //     Logger("Srv - Last hash values eq to received - ID: " + to_string(clientID) + " Hash: " + content);
+                // }
             }
             else
             {
@@ -387,7 +418,7 @@ int server::serverUP()
 
     //LISTEN
     if (listen(sock, max_c) < 0)
-        return -1;
+        return 1;
 
     if (EXEC_MODE == DEBUG_MODE || EXEC_MODE == INTERACTIVE_MODE)
         cout << "Srv - Server UP" << endl;
@@ -400,7 +431,7 @@ int server::serverUP()
         newSocket = accept(sock, (struct sockaddr *)&addr, (socklen_t *)&addrlen);
 
         if (newSocket < 0)
-            return -1;
+            return 1;
 
         // printf("Connection accepted from %s:%d\n", inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
         args.s = newSocket;
@@ -436,5 +467,5 @@ int server::serverUP()
     //Wait max life time of child thread before killing parent thread
     sleep(HASH_UPDATE_TIMESPACE_MAX);
     // pthread_exit(NULL);
-    return -1;
+    return 1;
 }

@@ -46,7 +46,7 @@ network::network()
     //init mutexes
     pthread_mutex_init(&lockTrustedNodeNumber, NULL);
     pthread_mutex_init(&lockNetworkComprometed, NULL);
-    pthread_mutex_init(&lockMaxFD, NULL);
+    // pthread_mutex_init(&lockMaxFD, NULL);
 
     try
     {
@@ -158,21 +158,21 @@ bool network::verifyPasswd(string inPswd)
     else
         return false;
 }
-int network::getMaxFD()
-{
-    int tmpMaxFD;
-    pthread_mutex_lock(&lockMaxFD);
-    tmpMaxFD = maxFD;
-    pthread_mutex_unlock(&lockMaxFD);
-    return tmpMaxFD;
-}
+// int network::getMaxFD()
+// {
+//     int tmpMaxFD;
+//     pthread_mutex_lock(&lockMaxFD);
+//     tmpMaxFD = maxFD;
+//     pthread_mutex_unlock(&lockMaxFD);
+//     return tmpMaxFD;
+// }
 
-void network::setMaxFD(int fd)
-{
-    pthread_mutex_lock(&lockMaxFD);
-    maxFD = fd;
-    pthread_mutex_unlock(&lockMaxFD);
-}
+// void network::setMaxFD(int fd)
+// {
+//     pthread_mutex_lock(&lockMaxFD);
+//     maxFD = fd;
+//     pthread_mutex_unlock(&lockMaxFD);
+// }
 
 void network::printNetwork()
 {
@@ -188,55 +188,57 @@ void network::printNetwork()
 
 bool network::connectToAllNodes()
 {
-    int tmpMFD;
+    // int tmpMFD;
     try
     {
-        pthread_mutex_lock(&lockMaxFD);
-        tmpMFD = maxFD;
-        pthread_mutex_unlock(&lockMaxFD);
+        // pthread_mutex_lock(&lockMaxFD);
+        // tmpMFD = maxFD;
 
         //No other global connections active
-        if (tmpMFD == -1)
-        {
-            //To prevent other threads to enter a num !=-1 and release mutex
-            pthread_mutex_lock(&lockMaxFD);
-            maxFD = 0;
-            pthread_mutex_unlock(&lockMaxFD);
+        // if (maxFD == -1)
+        // {
+        //     //To prevent other threads to enter a num !=-1 and release mutex
+        // maxFD = 0;
 
-            for (auto &i : netNodes)
+        //maxFD is -1 always at this point
+        for (auto &i : netNodes)
+        {
+            if (i->isTrusted()) //&& !i->isConnected()) //&& !i->getChangeFlag())
             {
-                if (i->isTrusted() && !i->isConnected()) //&& !i->getChangeFlag())
+                if (i->estConnection() == -1)
                 {
-                    if (i->estConnection() == -1)
+                    if (EXEC_MODE == DEBUG_MODE)
+                        cout << "Error connection: " << i->getID() << endl;
+                    Logger("Error connection: " + to_string(i->getID()));
+                    //Decrease confidence if node is not avalible
+                    i->decreaseTrustLvlIn(TRUST_DECREASE_CONST);
+                }
+                else
+                {
+                    //Add sockets for select
+                    FD_SET(i->getSock(), &readfds);
+                    if (i->getSock() > maxFD)
                     {
-                        if (EXEC_MODE == DEBUG_MODE)
-                            cout << "Error connection: " << i->getID() << endl;
-                        Logger("Error connection: " + to_string(i->getID()));
-                        //Decrease confidence if node is not avalible
-                        i->decreaseTrustLvlIn(TRUST_DECREASE_CONST);
+                        maxFD = i->getSock();
                     }
-                    else
-                    {
-                        //Add sockets for select
-                        FD_SET(i->getSock(), &readfds);
-                        if (i->getSock() > maxFD)
-                        {
-                            maxFD = i->getSock();
-                        }
-                        // cout << "Success connection: " << i->getID() << endl;
-                    }
+                    // cout << "Success connection: " << i->getID() << endl;
                 }
             }
-            return true;
+            // }
+            // pthread_mutex_unlock(&lockMaxFD);
         }
+        return true;
+
         //Network busy, sockets no reassembled
-        else
-        {
-            return false;
-        }
+        // else
+        // {
+        //     // pthread_mutex_unlock(&lockMaxFD);
+        //     return false;
+        // }
     }
     catch (const std::exception &e)
     {
+        // pthread_mutex_unlock(&lockMaxFD);
         if (EXEC_MODE == DEBUG_MODE)
             cerr << e.what() << '\n';
         Logger(e.what());
@@ -250,23 +252,20 @@ bool network::connectToNode(int ID)
     {
         for (auto &i : netNodes)
         {
-            if (i->getID() == ID)
+            if (i->getID() == ID && i->isTrusted()) //&& !i->isConnected())
             {
-                if (i->isTrusted() && !i->isConnected())
+                if (i->estConnection() == -1)
                 {
-                    if (i->estConnection() == -1)
-                    {
-                        if (EXEC_MODE == DEBUG_MODE)
-                            cout << "Error connection: " << i->getID() << endl;
-                        Logger("Error connection: " + to_string(i->getID()));
-                        //Decrease confidence if node is not avalible
-                        i->decreaseTrustLvlIn(TRUST_DECREASE_CONST);
-                    }
-                    else
-                    {
-                        // cout << "Success connection: " << ID << endl;
-                        return true;
-                    }
+                    if (EXEC_MODE == DEBUG_MODE)
+                        cout << "Error connection: " << i->getID() << endl;
+                    Logger("Error connection: " + to_string(i->getID()));
+                    //Decrease confidence if node is not avalible
+                    i->decreaseTrustLvlIn(TRUST_DECREASE_CONST);
+                }
+                else
+                {
+                    // cout << "Success connection: " << ID << endl;
+                    return true;
                 }
             }
         }
@@ -299,7 +298,7 @@ void network::reassembleSocket(int ID)
     }
 }
 
-//Be careful, maybe we need an int intead a bool for isConnected()
+//Be careful, maybe we need an int instead a bool for isConnected()
 void network::reassembleAllSockets()
 {
     try
@@ -367,7 +366,7 @@ bool network::sendString(int code, int destID, int sourceID, string content)
     {
         for (auto &i : netNodes)
         {
-            if (i->getID() == destID && i->isTrusted() && i->isConnected())
+            if (i->getID() == destID && i->isConnected()) //i->isTrusted() &&
             {
 
                 //Get and increment Sync Number
@@ -415,7 +414,7 @@ void network::sendStringToAll(int code, int sourceID, string content)
         // random = gen_urandom(RANDOM_STR_LEN);
         for (auto &i : netNodes)
         {
-            if (i->isTrusted() && i->isConnected()) //&& !i->getChangeFlag())
+            if (i->isConnected()) //&& i->isTrusted() && !i->getChangeFlag())
             {
 
                 //Get and increment Sync Number
@@ -488,7 +487,7 @@ int network::waitResponses(int resNum, int select_time)
             //Count all received connections
             for (auto &i : netNodes)
             {
-                if (i->isTrusted() && i->isConnected())
+                if (i->isConnected()) //i->isTrusted() && 
                 {
                     if (!FD_ISSET(i->getSock(), &readfds))
                     {
@@ -509,7 +508,7 @@ int network::waitResponses(int resNum, int select_time)
 int network::getTrustedRandomNode()
 {
     int random = -1;
-    //If no enough nodes are trusted return -1
+    //If no enough nodes are trusted return 1
     if (trustedNodeNumber < netNodeNumber * THRESHOLD)
         return random;
 
@@ -537,4 +536,22 @@ void network::resetTrustLvl()
     {
         i->resetTrustLvl();
     }
+}
+
+void network::pauseAuditor()
+{
+    self->setChangeFlag(true);
+    if (EXEC_MODE == INTERACTIVE_MODE || EXEC_MODE == DEBUG_MODE)
+        cout << "Pausing auditor..." << endl;
+    Logger("Pausing auditor...");
+
+    //WAIT FOR AUDITOR_INTERVAL SECONDS TO PAUSE AUDITOR CORRECTLY
+    sleep(AUDITOR_INTERVAL + 1);
+}
+void network::resumeAuditor()
+{
+    self->setChangeFlag(false);
+    if (EXEC_MODE == DEBUG_MODE)
+        cout << "Auditor resumed" << endl;
+    Logger("Auditor resumed");
 }
