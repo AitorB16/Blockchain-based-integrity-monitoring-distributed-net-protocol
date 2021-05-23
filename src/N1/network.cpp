@@ -57,7 +57,6 @@ network::network()
         self->createServerSocket();
         //NETWORK NODES
         netNode *tmp_node;
-        // adj_node_num = atoi(network_node->first_node("adj_node_num")->value());
         netNodeNumber = 0;
 
         for (xml_node<> *adj = network_node->first_node("node"); adj; adj = adj->next_sibling())
@@ -487,7 +486,7 @@ int network::waitResponses(int resNum, int select_time)
             //Count all received connections
             for (auto &i : netNodes)
             {
-                if (i->isConnected()) //i->isTrusted() && 
+                if (i->isConnected()) //i->isTrusted() &&
                 {
                     if (!FD_ISSET(i->getSock(), &readfds))
                     {
@@ -541,8 +540,7 @@ void network::resetTrustLvl()
 void network::pauseAuditor()
 {
     self->setChangeFlag(true);
-    if (EXEC_MODE == INTERACTIVE_MODE || EXEC_MODE == DEBUG_MODE)
-        cout << "Pausing auditor..." << endl;
+    cout << "Pausing auditor..." << endl;
     Logger("Pausing auditor...");
 
     //WAIT FOR AUDITOR_INTERVAL SECONDS TO PAUSE AUDITOR CORRECTLY

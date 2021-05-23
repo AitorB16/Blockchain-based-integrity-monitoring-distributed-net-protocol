@@ -5,9 +5,9 @@
 #define CONFIG_FILE "config.xml"
 
 //EXECUTION MODES
-#define SILENT_MODE 0
-#define INTERACTIVE_MODE 1
-#define DEBUG_MODE 2
+#define DEFAULT_MODE 0
+#define DEBUG_MODE 1
+
 //global exec var, loaded from config
 extern int EXEC_MODE;
 

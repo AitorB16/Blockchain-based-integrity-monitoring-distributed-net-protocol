@@ -266,12 +266,12 @@ void *socketThread(void *arg)
             {
                 // if (nN->getLastConflictiveHash() != content)
                 // {
-                    nN->updateHashList(content);
-                    nN->updateNodeBChain(content);
+                nN->updateHashList(content);
+                nN->updateNodeBChain(content);
 
-                    if (EXEC_MODE == DEBUG_MODE)
-                        cout << "Srv - New hash value of - ID: " << clientID << " Hash: " << content << endl;
-                    Logger("Srv - New hash value of - ID: " + to_string(clientID) + " Hash: " + content);
+                if (EXEC_MODE == DEBUG_MODE)
+                    cout << "Srv - New hash value of - ID: " << clientID << " Hash: " << content << endl;
+                Logger("Srv - New hash value of - ID: " + to_string(clientID) + " Hash: " + content);
                 // }
                 // else
                 // {
@@ -420,8 +420,7 @@ int server::serverUP()
     if (listen(sock, max_c) < 0)
         return 1;
 
-    if (EXEC_MODE == DEBUG_MODE || EXEC_MODE == INTERACTIVE_MODE)
-        cout << "Srv - Server UP" << endl;
+    cout << "Srv - Server UP" << endl;
     Logger("Srv - Server UP");
 
     while (1)
@@ -461,8 +460,7 @@ int server::serverUP()
 
     //Close server socket
     close(sock);
-    if (EXEC_MODE == DEBUG_MODE || EXEC_MODE == INTERACTIVE_MODE)
-        cout << "Srv - SERVER STOPPED" << endl;
+    cout << "Srv - SERVER STOPPED" << endl;
     Logger("Srv - SERVER STOPPED");
     //Wait max life time of child thread before killing parent thread
     sleep(HASH_UPDATE_TIMESPACE_MAX);

@@ -133,7 +133,7 @@ int main(void)
     std::string buffer, response, input;
 
     //Print other nodes
-    if (EXEC_MODE == DEBUG_MODE || EXEC_MODE == INTERACTIVE_MODE)
+    if (EXEC_MODE == DEBUG_MODE)
     {
         cout << net->getSelfNode()->getID() << endl;
         net->printNetwork();
@@ -158,155 +158,63 @@ int main(void)
         exit(1);
     }
 
+    cout << "Deploying the network... wait please" << endl;
+
     //sleep random number to not overload the system + a minimum time to let the system deploy
     sleep(get_randomNumber(TIME_SPACE_BEFORE_AUDIT) + TIME_SPACE_BEFORE_AUDIT / 3);
 
     //Sync method to achieve consisntency before launching the auditor
-    updateSelfHash(HASH_UPDATE_TIMESPACE_MAX);
-
-    //Wait until the whole system is deployed
-    sleep(TIME_SPACE_BEFORE_AUDIT * 2);
-
-    //Launch the auditor
-    if (pthread_create(&auditorTid, NULL, auditorThread, NULL) != 0)
+    if (updateSelfHash(HASH_UPDATE_TIMESPACE_MAX) == 0)
     {
-        if (EXEC_MODE == DEBUG_MODE)
-            cout << "Error creating auditor thread" << endl;
-        Logger("Error creating auditor thread");
-        exit(1);
+        //Wait until the whole system is deployed
+        sleep(TIME_SPACE_BEFORE_AUDIT * 2);
+
+        //Launch the auditor
+        if (pthread_create(&auditorTid, NULL, auditorThread, NULL) != 0)
+        {
+            if (EXEC_MODE == DEBUG_MODE)
+                cout << "Error creating auditor thread" << endl;
+            Logger("Error creating auditor thread");
+            exit(1);
+        }
     }
-
-    // netNode nN;
-
-    // string IDNodeHash;
-    // bool flagValue;
 
     while (1)
     {
 
-        if (EXEC_MODE == DEBUG_MODE || EXEC_MODE == INTERACTIVE_MODE)
+        // if (EXEC_MODE == DEBUG_MODE || EXEC_MODE == INTERACTIVE_MODE)
+        // {
+
+        cout << "Enter options" << endl;
+        cin >> option;
+
+        switch (option)
         {
-
-            cout << "Enter options" << endl;
-            cin >> option;
-
-            switch (option)
+        //Close infraestructure
+        case 0:
+            cout << "Exiting infra" << endl;
+            Logger("Exiting infra");
+            exit(0);
+            break;
+        //Print Network
+        case 1:
+            if (net->isNetworkComprometed())
             {
-            //Close infraestructure
-            case 0:
-                cout << "Exiting infra" << endl;
-                Logger("Exiting infra");
-                exit(0);
-                break;
-            //Print Network
-            case 1:
-                if (net->isNetworkComprometed())
-                {
-                    cout << "I'm not trusted by the network, not recieving updates anymore; my data is not valid" << endl;
-                    Logger("I'm not trusted by the network, not recieving updates anymore; my data is not valid");
-                }
-                else
-                {
-                    net->printNetwork();
-                }
-                break;
-            //BCAST request to send + timeout + count
-            case 2:
-                //Wait for user interaction
-                cout << "Enter the passwd to open a work-frame..." << endl;
-                cin >> input;
-                if (net->verifyPasswd(input))
-                {
-                    if (!net->isNetworkComprometed())
-                    {
-                        cout << "Enter time to work in seconds, MAX: " << HASH_UPDATE_TIMESPACE_MAX << endl;
-                        cin >> input;
-
-                        //pause auditor
-                        net->pauseAuditor();
-
-                        updateSelfHash(atoi(input.c_str()));
-
-                        //resume auditor
-                        net->resumeAuditor();
-                    }
-                    else
-                    {
-                        cout << "I'm not trusted by the network, cant send data" << endl;
-                        Logger("I'm not trusted by the network, cant send data");
-                    }
-                }
-                else
-                {
-                    cout << "Invalid passwd" << endl;
-                    Logger("Invalid passwd");
-                }
-                break;
-            //Update selfhash manualy
-            // case 3:
-            //     if (net->isNetworkComprometed())
-            //     {
-            //         cout << "I'm not trusted by the network, not recieving updates anymore; my data is not valid" << endl;
-            //         Logger("I'm not trusted by the network, not recieving updates anymore; my data is not valid");
-            //     }
-            //     else
-            //     {
-            //         cout << "enter new hash" << endl;
-            //         cin >> input;
-            //         Logger("Hash updated secretly: " + input);
-            //         net->getSelfNode()->updateHashList(input);
-            //     }
-            //     break;
-            //Print blockchain, good hash record and conflictive hash record
-            case 3:
-                if (net->isNetworkComprometed())
-                {
-                    cout << "I'm not trusted by the network, not recieving updates anymore; my data is not valid" << endl;
-                    Logger("I'm not trusted by the network, not recieving updates anymore; my data is not valid");
-                }
-                // else
-                // {
-                cout << "enter node ID" << endl;
-                cin >> dest;
-                if (dest != net->getSelfNode()->getID())
-                {
-                    cout << endl;
-                    cout << "BLOCKCHAIN RECORD" << endl;
-                    net->getNode(dest)->printNodeBchain();
-                    cout << endl;
-                    cout << "GOOD HASH RECORD" << endl;
-                    net->getNode(dest)->printHashList();
-                    cout << endl;
-                    cout << "BAD HASH RECORD" << endl;
-                    net->getNode(dest)->printConflictiveHashList();
-                    cout << endl;
-                }
-                else
-                {
-                    cout << endl;
-                    cout << "BLOCKCHAIN RECORD" << endl;
-                    net->getSelfNode()->printNodeBchain();
-                    cout << endl;
-                    cout << "HASH RECORD" << endl;
-                    net->getSelfNode()->printHashList();
-                    cout << endl;
-                }
-                // }
-                break;
-
-            default:
-                break;
+                cout << "I'm not trusted by the network, not recieving updates anymore; my data is not valid" << endl;
+                Logger("I'm not trusted by the network, not recieving updates anymore; my data is not valid");
             }
-        }
-        //SILENT MODE
-        else
-        {
+            else
+            {
+                net->printNetwork();
+            }
+            break;
+        //BCAST request to send + timeout + count
+        case 2:
             //Wait for user interaction
             cout << "Enter the passwd to open a work-frame..." << endl;
             cin >> input;
             if (net->verifyPasswd(input))
             {
-
                 if (!net->isNetworkComprometed())
                 {
                     cout << "Enter time to work in seconds, MAX: " << HASH_UPDATE_TIMESPACE_MAX << endl;
@@ -316,19 +224,15 @@ int main(void)
                     net->pauseAuditor();
 
                     if (updateSelfHash(atoi(input.c_str())) == 0)
-                        cout << "Hash update ended correctly - Hash" << net->getSelfNode()->getLastHash() << endl;
-                    else
-                        cout << "An error occurred" << endl;
-                    //resume auditor
-                    net->resumeAuditor();
+                    {
+                        //resume auditor
+                        net->resumeAuditor();
+                    }
                 }
                 else
                 {
                     cout << "I'm not trusted by the network, cant send data" << endl;
                     Logger("I'm not trusted by the network, cant send data");
-                    //Prevent running out of resources
-                    // sleep(TIME_SPACE_BEFORE_AUDIT);
-                    //Exit method
                 }
             }
             else
@@ -336,12 +240,43 @@ int main(void)
                 cout << "Invalid passwd" << endl;
                 Logger("Invalid passwd");
             }
-            //Prevent silent mode burning resources
-            // if (EXEC_MODE == SILENT_MODE)
-            //     sleep(TIME_SPACE_BEFORE_AUDIT);
-            //Alternatively, we could add a cin waiting to code 0 - exit
+            break;
+        case 3:
+            if (net->isNetworkComprometed())
+            {
+                cout << "I'm not trusted by the network, not recieving updates anymore; my data is not valid" << endl;
+                Logger("I'm not trusted by the network, not recieving updates anymore; my data is not valid");
+            }
+            cout << "enter node ID" << endl;
+            cin >> dest;
+            if (dest != net->getSelfNode()->getID())
+            {
+                cout << endl;
+                cout << "BLOCKCHAIN RECORD" << endl;
+                net->getNode(dest)->printNodeBchain();
+                cout << endl;
+                cout << "GOOD HASH RECORD" << endl;
+                net->getNode(dest)->printHashList();
+                cout << endl;
+                cout << "BAD HASH RECORD" << endl;
+                net->getNode(dest)->printConflictiveHashList();
+                cout << endl;
+            }
+            else
+            {
+                cout << endl;
+                cout << "BLOCKCHAIN RECORD" << endl;
+                net->getSelfNode()->printNodeBchain();
+                cout << endl;
+                cout << "HASH RECORD" << endl;
+                net->getSelfNode()->printHashList();
+                cout << endl;
+            }
+            break;
+
+        default:
+            break;
         }
     }
-
     return 0;
 }

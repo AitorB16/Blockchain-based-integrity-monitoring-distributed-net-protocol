@@ -1,4 +1,4 @@
 #include "globals.hpp"
 
 //DEFAULT VALUE SILENT
-int EXEC_MODE = SILENT_MODE;
+int EXEC_MODE = DEFAULT_MODE;

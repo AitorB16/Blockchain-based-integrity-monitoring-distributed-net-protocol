@@ -44,7 +44,7 @@ int dbus_init()
     r = sd_bus_open_user(&bus);
     if (r < 0)
     {
-        if (EXEC_MODE == DEBUG_MODE || EXEC_MODE == INTERACTIVE_MODE)
+        if (EXEC_MODE == DEBUG_MODE)
             cout << "Lnk - Failed to connect to system bus: " << strerror(-r) << endl;
         Logger("Lnk - Failed to connect to system bus");
         // fprintf(stderr, "Failed to connect to system bus: %s\n", strerror(-r));
@@ -58,7 +58,7 @@ int dbus_init()
                                  NULL);
     if (r < 0)
     {
-        if (EXEC_MODE == DEBUG_MODE || EXEC_MODE == INTERACTIVE_MODE)
+        if (EXEC_MODE == DEBUG_MODE)
             cout << "Lnk - Failed to issue method call: " << strerror(-r) << endl;
         Logger("Lnk - Failed to issue method call");
         // fprintf(stderr, "Failed to issue method call: %s\n", strerror(-r));
@@ -69,7 +69,7 @@ int dbus_init()
     r = sd_bus_request_name(bus, "net.n1.manager", 0);
     if (r < 0)
     {
-        if (EXEC_MODE == DEBUG_MODE || EXEC_MODE == INTERACTIVE_MODE)
+        if (EXEC_MODE == DEBUG_MODE)
             cout << "Lnk - Failed to acquire service name: " << strerror(-r) << endl;
         Logger("Lnk - Failed to acquire service name");
         // fprintf(stderr, "Failed to acquire service name: %s\n", strerror(-r));
@@ -82,9 +82,7 @@ int dbus_init()
 void thread_process()
 {
     int r = dbus_init();
-
-    if (EXEC_MODE == DEBUG_MODE || EXEC_MODE == INTERACTIVE_MODE)
-        cout << "Lnk - Linker UP" << endl;
+    cout << "Lnk - Linker UP" << endl;
     Logger("Lnk - Linker UP");
 
     while (1)
@@ -93,7 +91,7 @@ void thread_process()
         r = sd_bus_process(bus, NULL);
         if (r < 0)
         {
-            if (EXEC_MODE == DEBUG_MODE || EXEC_MODE == INTERACTIVE_MODE)
+            if (EXEC_MODE == DEBUG_MODE)
                 cout << "Lnk - Failed to process bus: " << strerror(-r) << endl;
             Logger("Lnk - Failed to process bus");
             // fprintf(stderr, "Failed to process bus: %s\n", strerror(-r));
@@ -105,7 +103,7 @@ void thread_process()
         r = sd_bus_wait(bus, (uint64_t)-1);
         if (r < 0)
         {
-            if (EXEC_MODE == DEBUG_MODE || EXEC_MODE == INTERACTIVE_MODE)
+            if (EXEC_MODE == DEBUG_MODE)
                 cout << "Lnk - Failed to wait bus: " << strerror(-r) << endl;
             Logger("Lnk - Failed to wait bus");
             // fprintf(stderr, "Failed to wait on bus: %s\n", strerror(-r));

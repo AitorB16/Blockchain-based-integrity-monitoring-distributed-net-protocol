@@ -74,8 +74,7 @@ int auditor::auditorUP()
         exit(1);
     }
 
-    if (EXEC_MODE == DEBUG_MODE)
-        cout << "Aud - Auditor UP" << endl;
+    cout << "Aud - Auditor UP" << endl;
     Logger("Aud - Auditor UP");
 
     while (1)
@@ -105,8 +104,7 @@ int auditor::auditorUP()
             {
                 selfNetwork->setNetworkToComprometed();
                 //SET ALL nodes to no trust
-                if (EXEC_MODE == DEBUG_MODE || EXEC_MODE == INTERACTIVE_MODE)
-                    cout << "Aud - STOPPING AUDITOR, NO TRUSTED NODES LEFT; NETWORK COMPROMETED" << endl;
+                cout << "Aud - STOPPING AUDITOR, NO TRUSTED NODES LEFT; NETWORK COMPROMETED" << endl;
                 Logger("Aud - STOPPING AUDITOR, NO TRUSTED NODES LEFT; NETWORK COMPROMETED");
                 //End auditor
                 return 1;
