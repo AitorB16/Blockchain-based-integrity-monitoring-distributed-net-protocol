@@ -71,7 +71,35 @@ network::network()
             netNodes.push_back(tmp_node);
             netNodeNumber++;
         }
+
         trustedNodeNumber = netNodeNumber;
+
+        //MUST BE PART OF THE NETWORK???
+
+        TRUST_LEVEL = netNodeNumber * THRESHOLD;
+
+        // cout << TRUST_DECREASE_C2 << endl;
+
+        // TIME_RESET_TRUST_LVL = netNodeNumber * AUDITOR_INTERVAL; //AUDITOR_INTERVAL * netNodeNumber * TRUST_LEVEL;
+
+        // TIME_RESET_INCIDENTS = netNodeNumber * AUDITOR_INTERVAL * 2;
+
+        // float base = (netNodeNumber - 1.0) / (netNodeNumber);
+
+        // float prob = (logf(1 - 0.6) / logf(base)) * 2.0;
+
+        // TIME_RESET_INCIDENTS = (int)prob * AUDITOR_INTERVAL;
+
+        TIME_RESET_INCIDENTS = (2 * netNodeNumber + netNodeNumber / 2) * AUDITOR_INTERVAL;
+
+        MAX_INCIDENCES = netNodeNumber / 3;
+        if (MAX_INCIDENCES < 1)
+            MAX_INCIDENCES = 1;
+
+        for (auto &i : netNodes)
+        {
+            i->setTrustLvl(TRUST_LEVEL);
+        }
     }
     catch (const std::exception &e)
     {
@@ -152,7 +180,7 @@ void network::setNetworkToComprometed()
 }
 bool network::verifyPasswd(string inPswd)
 {
-    if (passwdSHA256 == stream2hex(hashText(inPswd)))
+    if (passwdSHA256 == hashText(inPswd))
         return true;
     else
         return false;
@@ -210,7 +238,8 @@ bool network::connectToAllNodes()
                         cout << "Error connection: " << i->getID() << endl;
                     Logger("Error connection: " + to_string(i->getID()));
                     //Decrease confidence if node is not avalible
-                    i->decreaseTrustLvlIn(TRUST_DECREASE_CONST);
+                    // i->decreaseTrustLvlIn(TRUST_DECREASE_C2);
+                    i->increaseIncidenceNum(INCIDENT_INCREASE);
                 }
                 else
                 {
@@ -259,7 +288,8 @@ bool network::connectToNode(int ID)
                         cout << "Error connection: " << i->getID() << endl;
                     Logger("Error connection: " + to_string(i->getID()));
                     //Decrease confidence if node is not avalible
-                    i->decreaseTrustLvlIn(TRUST_DECREASE_CONST);
+                    // i->decreaseTrustLvlIn(TRUST_DECREASE_C2);
+                    i->increaseIncidenceNum(INCIDENT_INCREASE);
                 }
                 else
                 {
@@ -332,7 +362,7 @@ bool network::validateMsg(int selfID, int clientID, int syncNumReceived, string 
         syncNumStored = nN->getSyncNum();
 
         //Verify if msg is correctly signed
-        if (verify(MsgToVerify, hex2stream(MsgSignature), to_string(clientID)))
+        if (verify(MsgToVerify, MsgSignature, to_string(clientID)))
         {
             //Standard situation
             if (syncNumReceived == syncNumStored)
@@ -358,7 +388,7 @@ bool network::validateMsg(int selfID, int clientID, int syncNumReceived, string 
 
 bool network::sendString(int code, int destID, int sourceID, string content)
 {
-    std::string buffer, msg, signedMsg, hexMsg;
+    std::string buffer, msg, signedMsg;
     int syncNum;
 
     try
@@ -375,8 +405,7 @@ bool network::sendString(int code, int destID, int sourceID, string content)
                 msg = to_string(code) + ";" + to_string(sourceID) + ";" + to_string(i->getID()) + ";" + to_string(syncNum) + ";" + content;
 
                 signedMsg = sign(msg, std::to_string(sourceID));
-                hexMsg = stream2hex(signedMsg);
-                msg = msg + ";" + hexMsg + ";";
+                msg = msg + ";" + signedMsg + ";";
                 buffer = msg;
                 if (i->sendString(buffer.c_str()) == -1)
                 {
@@ -405,7 +434,7 @@ bool network::sendString(int code, int destID, int sourceID, string content)
 
 void network::sendStringToAll(int code, int sourceID, string content)
 {
-    std::string buffer, msg, signedMsg, hexMsg;
+    std::string buffer, msg, signedMsg;
     int syncNum;
 
     try
@@ -425,8 +454,7 @@ void network::sendStringToAll(int code, int sourceID, string content)
                 //PROBLEMS SINGING OVER SIGN, NEED HASHING???
 
                 signedMsg = sign(msg, std::to_string(sourceID));
-                hexMsg = stream2hex(signedMsg);
-                msg = msg + ";" + hexMsg + ";";
+                msg = msg + ";" + signedMsg + ";";
                 buffer = msg;
 
                 if (i->sendString(buffer.c_str()) == -1)
@@ -451,10 +479,10 @@ void network::sendStringToAll(int code, int sourceID, string content)
     }
 }
 
-int network::waitResponses(int resNum, int select_time)
+int network::waitResponses(int resNum, int selectTime)
 {
     struct timeval tv;
-    tv.tv_sec = select_time;
+    tv.tv_sec = selectTime;
     tv.tv_usec = 0;
 
     int selectStatus;
@@ -515,7 +543,7 @@ int network::getTrustedRandomNode()
     while (1)
     {
         //Self node must be counted as well +1; first node starts at 1 -> +1
-        random = get_randomNumber(netNodeNumber + 1 + 1);
+        random = getRandomNumber(netNodeNumber + 1 + 1);
         for (auto &i : netNodes)
         {
             if (i->getID() == random)
@@ -529,11 +557,13 @@ int network::getTrustedRandomNode()
     }
 }
 
-void network::resetTrustLvl()
+void network::resetIncidenceNum()
 {
+    // TRUST_LEVEL = trustedNodeNumber * THRESHOLD;
+    // cout << TRUST_LEVEL << endl;
     for (auto &i : netNodes)
     {
-        i->resetTrustLvl();
+        i->resetIncidenceNum();
     }
 }
 

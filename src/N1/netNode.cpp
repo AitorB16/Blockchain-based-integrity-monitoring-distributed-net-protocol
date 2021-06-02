@@ -9,12 +9,14 @@ netNode::netNode(int ID, char *ip, int port, CryptoPP::RSA::PublicKey pub)
 {
     netNode::syncNum = 0;
     netNode::trustLvl = TRUST_LEVEL;
+    netNode::incidenceNum = 0;
     netNode::connected = false;
     netNode::conflictiveHashRecord.push_back(FIRST_HASH_SEC);
 
     //init mutextes
     // pthread_mutex_init(&lockConnected, NULL);
     pthread_mutex_init(&lockTrustLvl, NULL);
+    pthread_mutex_init(&lockIncidenceNum, NULL);
     pthread_mutex_init(&lockSyncNum, NULL);
     pthread_mutex_init(&lockConfHashRecord, NULL);
 }
@@ -34,20 +36,6 @@ void netNode::updateConflictiveHashList(string hash)
     conflictiveHashRecord.push_back(hash + "; sec - " + to_string(nodeBChain.size()));
     pthread_mutex_unlock(&lockConfHashRecord);
 }
-// bool netNode::isConflictiveHashRepeated(string hash)
-// {
-//     bool isIn = false;
-//     pthread_mutex_lock(&lockConfHashRecord);
-//     for (auto &i : conflictiveHashRecord)
-//     {
-//         if (i == hash)
-//         {
-//             isIn = true;
-//         }
-//     }
-//     pthread_mutex_unlock(&lockConfHashRecord);
-//     return isIn;
-// }
 
 void netNode::printConflictiveHashList()
 {
@@ -93,6 +81,12 @@ int netNode::getTrustLvl()
     pthread_mutex_unlock(&lockTrustLvl);
     return tmpTrustLvl;
 }
+void netNode::setTrustLvl(int trl)
+{
+    pthread_mutex_lock(&lockTrustLvl);
+    trustLvl = trl;
+    pthread_mutex_unlock(&lockTrustLvl);
+}
 
 void netNode::decreaseTrustLvlIn(int sub)
 {
@@ -105,9 +99,44 @@ void netNode::resetTrustLvl()
 {
     pthread_mutex_lock(&lockTrustLvl);
     //only if trusted
-    if (trustLvl > 0 && trustLvl < TRUST_LEVEL)
+    if (trustLvl < TRUST_LEVEL && trustLvl > 0)
+    {
         trustLvl++;
+    }
     pthread_mutex_unlock(&lockTrustLvl);
+}
+int netNode::getIncidenceNum()
+{
+    int tmpIncidenceNum;
+    pthread_mutex_lock(&lockIncidenceNum);
+    tmpIncidenceNum = incidenceNum;
+    pthread_mutex_unlock(&lockIncidenceNum);
+    return tmpIncidenceNum;
+}
+void netNode::setIncidenceNum(int iN)
+{
+    pthread_mutex_lock(&lockIncidenceNum);
+    incidenceNum = iN;
+    pthread_mutex_unlock(&lockIncidenceNum);
+}
+void netNode::increaseIncidenceNum(int sum)
+{
+    pthread_mutex_lock(&lockIncidenceNum);
+    incidenceNum += sum;
+    if (incidenceNum >= MAX_INCIDENCES)
+    {
+        setTrustLvl(0);
+    }
+    pthread_mutex_unlock(&lockIncidenceNum);
+}
+void netNode::resetIncidenceNum()
+{
+    pthread_mutex_lock(&lockIncidenceNum);
+    if (incidenceNum > 0 && incidenceNum < MAX_INCIDENCES)
+    {
+        incidenceNum--;
+    }
+    pthread_mutex_unlock(&lockIncidenceNum);
 }
 
 bool netNode::isConnected()

@@ -1,14 +1,17 @@
 #include "crypto.hpp"
 // using namespace CryptoPP;
 
-
-std::string hashText(std::string inputText){
+std::string hashText(std::string inputText)
+{
     CryptoPP::SHA256 hash;
     std::string digest;
-    
-    hash.Update((const byte*)inputText.data(), inputText.size());
-    digest.resize(hash.DigestSize());
-    hash.Final((byte*)&digest[0]);
+
+    //ADD encoder?
+    CryptoPP::StringSource s(inputText, true, new CryptoPP::HashFilter(hash, new CryptoPP::HexEncoder(new CryptoPP::StringSink(digest))));
+
+    // hash.Update((const byte *)inputText.data(), inputText.size());
+    // digest.resize(hash.DigestSize());
+    // hash.Final((byte *)&digest[0]);
 
     return digest;
 }
@@ -99,6 +102,7 @@ std::string decrypt(std::string encr_msg, std::string key_ID)
     return r;
 }
 
+//ADD ENCODER
 std::string sign(std::string msg, std::string key_ID)
 {
     CryptoPP::AutoSeededRandomPool prng;
@@ -113,8 +117,9 @@ std::string sign(std::string msg, std::string key_ID)
 
     CryptoPP::StringSource ss1(msg, true,
                                new CryptoPP::SignerFilter(prng, signer,
-                                                          new CryptoPP::StringSink(s)) // SignerFilter
-    );                                                                                 // StringSource                                                                                     // StringSource                                                                       // StringSource
+                                                          new CryptoPP::HexEncoder(
+                                                              new CryptoPP::StringSink(s))) // SignerFilter
+    );                                                                                      // StringSource                                                                                     // StringSource                                                                       // StringSource
 
     return s;
 }
@@ -122,8 +127,6 @@ std::string sign(std::string msg, std::string key_ID)
 bool verify(std::string msg, std::string sign_msg, std::string key_ID)
 {
     CryptoPP::AutoSeededRandomPool prng;
-
-    // std::string c;
 
     //import public key
     CryptoPP::RSA::PublicKey pub = get_pub(key_ID);
@@ -136,9 +139,15 @@ bool verify(std::string msg, std::string sign_msg, std::string key_ID)
     //                     CryptoPP::SignatureVerificationFilter::THROW_EXCEPTION) // SignatureVerificationFilter
     // );                                                                 // StringSource
 
+    // decode signature
+    std::string decodedSignature;
+    CryptoPP::StringSource ss(sign_msg, true,
+                              new CryptoPP::HexDecoder(
+                                  new CryptoPP::StringSink(decodedSignature)));
+
     bool result = false;
     //   Verifier verifier(publicKey);
-    CryptoPP::StringSource ss2(sign_msg + msg, true,
+    CryptoPP::StringSource ss2(decodedSignature + msg, true,
                                new CryptoPP::SignatureVerificationFilter(verifier,
                                                                          new CryptoPP::ArraySink((byte *)&result,
                                                                                                  sizeof(result))));

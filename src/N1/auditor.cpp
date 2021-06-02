@@ -33,7 +33,7 @@
 //     network *net;
 // };
 
-void *resetTrustLvlThread(void *arg)
+void *resetIncidencesThread(void *arg)
 {
 
     // struct argNetwork *args = (struct argNetwork *)arg;
@@ -42,8 +42,9 @@ void *resetTrustLvlThread(void *arg)
     network *net = net->getInstance();
 
     //Default sleep time
-    sleep(TIME_RESET_TRUST_LVL);
-    net->resetTrustLvl();
+    // sleep(TIME_RESET_TRUST_LVL);
+    sleep(TIME_RESET_INCIDENTS);
+    net->resetIncidenceNum();
     pthread_exit(NULL);
 }
 
@@ -63,10 +64,9 @@ int auditor::auditorUP()
     // argNetwork args;
     // args.net = selfNetwork;
 
-    pthread_t trustThread;
-    pthread_t auditResetThread;
+    pthread_t incidentThread;
 
-    if (pthread_create(&trustThread, NULL, resetTrustLvlThread, NULL) != 0)
+    if (pthread_create(&incidentThread, NULL, resetIncidencesThread, NULL) != 0)
     {
         if (EXEC_MODE == DEBUG_MODE)
             cout << "Aud - Error creating reset trustlvl thread" << endl;
@@ -92,8 +92,8 @@ int auditor::auditorUP()
             //If network not trusted, kill thread
             if (selfNetwork->isNetworkComprometed())
             {
-                if (EXEC_MODE == DEBUG_MODE)
-                    cout << "Aud - STOPPING AUDITOR, NETWORK COMPROMETED" << endl;
+                // if (EXEC_MODE == DEBUG_MODE)
+                cout << "Aud - STOPPING AUDITOR, NETWORK COMPROMETED" << endl;
                 Logger("Aud - STOPPING AUDITOR, NETWORK COMPROMETED");
                 return 1;
             }
@@ -147,10 +147,11 @@ void auditor::auditNode(int auditedID)
 
                     //Attempt of message falsification
                     if (EXEC_MODE == DEBUG_MODE)
-                        cout << "Aud - Disconnected message was faked" << endl;
-                    Logger("Aud - Disconnected message was faked");
+                        cout << "Aud - Message was faked" << endl;
+                    Logger("Aud - Message was faked");
                     //Decrease confidence in node
-                    auditedNode->decreaseTrustLvlIn(TRUST_DECREASE_CONST);
+                    // auditedNode->decreaseTrustLvlIn(TRUST_DECREASE_C2);
+                    auditedNode->increaseIncidenceNum(INCIDENT_INCREASE);
                     selfNetwork->reassembleSocket(auditedID);
                 }
                 //Something valid is received
@@ -218,7 +219,7 @@ void auditor::auditNode(int auditedID)
                             if (EXEC_MODE == DEBUG_MODE)
                                 cout << "Aud - Blame to - ID: " << auditedID << " ended successfully" << endl;
                             Logger("Aud - Blame to - ID: " + to_string(auditedID) + " ended successfully");
-                            auditedNode->decreaseTrustLvlIn(TRUST_DECREASE_CONST);
+                            auditedNode->decreaseTrustLvlIn(TRUST_DECREASE);
                         }
 
                         //Close connection
@@ -237,13 +238,19 @@ void auditor::auditNode(int auditedID)
             //Catch error from recv
             catch (const std::exception &e)
             {
-                auditedNode->decreaseTrustLvlIn(TRUST_DECREASE_CONST);
+
+                // cout << TRUST_DECREASE_C1 << " "<< TRUST_DECREASE_C2 << endl;
+
+                auditedNode->increaseIncidenceNum(INCIDENT_INCREASE);
+
+                // cout << auditedNode->getTrustLvl() << endl;
+
                 // auditedNode->incrementSyncNum(); //Comment??
                 selfNetwork->reassembleSocket(auditedID);
                 // auditedNode->incrementSyncNum();
                 if (EXEC_MODE == DEBUG_MODE)
-                    cerr << "Aud - Node doesnt trust me - ID: " << audID << " SyncNum: " << auditedNode->getSyncNum() << endl;
-                Logger("Aud - Node doesnt trust me - ID: " + to_string(audID) + " SyncNum: " + to_string(auditedNode->getSyncNum()));
+                    cerr << "Aud - Node doesnt trust me - ID: " << auditedID << " SyncNum: " << auditedNode->getSyncNum() << endl;
+                Logger("Aud - Node doesnt trust me - ID: " + to_string(auditedID) + " SyncNum: " + to_string(auditedNode->getSyncNum()));
                 // pthread_exit(NULL);
             }
         }
@@ -251,7 +258,8 @@ void auditor::auditNode(int auditedID)
     //Error connecting to audited node
     else
     {
-        auditedNode->decreaseTrustLvlIn(TRUST_DECREASE_CONST);
+        // auditedNode->decreaseTrustLvlIn(TRUST_DECREASE_C2);
+        auditedNode->increaseIncidenceNum(INCIDENT_INCREASE);
     }
     // pthread_exit(NULL);
 }

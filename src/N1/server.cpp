@@ -35,7 +35,7 @@ bool replyStringSocket(int code, netNode *nN, int sourceID, int sock, string con
         msg = to_string(code) + ";" + to_string(sourceID) + ";" + to_string(nN->getID()) + ";" + to_string(syncNum) + ";" + content;
 
         signedMsg = sign(msg, std::to_string(sourceID));
-        hexMsg = stream2hex(signedMsg);
+        hexMsg = signedMsg;
         msg = msg + ";" + hexMsg + ";";
         buffer = msg;
         if (send(sock, buffer.c_str(), strlen(buffer.c_str()), 0) == -1)
@@ -293,7 +293,8 @@ void *socketThread(void *arg)
         else
         {
             // if (get_randomNumber(2) == 0)
-            nN->decreaseTrustLvlIn(TRUST_DECREASE_CONST);
+            // nN->decreaseTrustLvlIn(TRUST_DECREASE_C2);
+            nN->increaseIncidenceNum(INCIDENT_INCREASE);
         }
 
         //Close connection
@@ -323,37 +324,48 @@ void *socketThread(void *arg)
             if (net->getNode(suspectID)->getLastHash() != susContent)
             {
                 //Non repudiation from suspicious
-                if (verify(susMsgToVerify, hex2stream(susMsgSignature), to_string(suspectID)))
+                if (verify(susMsgToVerify, susMsgSignature, to_string(suspectID)))
                 {
+                    //The blamed node is already not trusted
+                    if (!net->getNode(suspectID)->isTrusted())
+                    {
+                        if (EXEC_MODE == DEBUG_MODE)
+                            cout << "Srv - Blamed node is already not trusted - ID: " << suspectID << " Hash: " << susContent << endl;
+                        Logger("Srv - Srv - Blamed node is already not trusted - ID: " + to_string(suspectID) + " Hash: " + susContent);
+                    }
                     //Insert conflictive hash in list
-                    if (net->getNode(suspectID)->getLastConflictiveHash() != susContent)
+                    else if (net->getNode(suspectID)->getLastConflictiveHash() != susContent)
                     {
                         net->getNode(suspectID)->updateConflictiveHashList(susContent);
                         net->getNode(suspectID)->updateNodeBChain(susContent);
+
+                        //Decrease confidence on suspicious
+                        net->getNode(suspectID)->decreaseTrustLvlIn(TRUST_DECREASE);
+                        //Preventive, not leting arbitary decreases
+                        net->getNode(auditorID)->decreaseTrustLvlIn(TRUST_DECREASE);
+
                         if (EXEC_MODE == DEBUG_MODE)
                             cout << "Srv - Last conflictive Hash updated - ID: " << suspectID << " Hash: " << susContent;
                         Logger("Srv - Last conflictive Hash updated - ID: " + to_string(suspectID) + " Hash: " + susContent);
                     }
                     else
                     {
+                        //Decrease confidence on suspicious
+                        net->getNode(suspectID)->decreaseTrustLvlIn(TRUST_DECREASE);
+                        //Preventive, not leting arbitary decreases
+                        net->getNode(auditorID)->decreaseTrustLvlIn(TRUST_DECREASE);
+
                         if (EXEC_MODE == DEBUG_MODE)
-                            cout << "Srv - Last conflictive hash values eq to blamed - ID: " << clientID << " Hash: " << susContent << endl;
-                        Logger("Srv - Last conflictive hash values eq to blamed - ID: " + to_string(clientID) + " Hash: " + susContent);
+                            cout << "Srv - Last conflictive hash values eq to blamed - ID: " << suspectID << " Hash: " << susContent << endl;
+                        Logger("Srv - Last conflictive hash values eq to blamed - ID: " + to_string(suspectID) + " Hash: " + susContent);
                     }
-
-                    //Decrease confidence on suspicious
-                    net->getNode(suspectID)->decreaseTrustLvlIn(TRUST_DECREASE_CONST);
-
-                    //Preventive, if I lost this update, decrease confidence on auditor.
-                    //MAKE DE AUDITOR DECREASE AT trusted node number * 2/3 SPEED OF SUSPECT
-                    if (get_randomNumber(net->getTrustedNodeNumber() * THRESHOLD) == 0)
-                        net->getNode(auditorID)->decreaseTrustLvlIn(TRUST_DECREASE_CONST);
                 }
                 //Msg faked by auditor
                 else
                 {
                     //Decrease confidence on auditor
-                    net->getNode(auditorID)->decreaseTrustLvlIn(TRUST_DECREASE_CONST);
+                    // net->getNode(auditorID)->decreaseTrustLvlIn(TRUST_DECREASE_C2);
+                    nN->increaseIncidenceNum(INCIDENT_INCREASE);
                 }
             }
             //OK the auditor node isnt updated
@@ -361,7 +373,8 @@ void *socketThread(void *arg)
             else
             {
                 //Decrease 1 unit confidence on auditor to prevent DDoS
-                net->getNode(auditorID)->decreaseTrustLvlIn(TRUST_DECREASE_CONST);
+                // net->getNode(auditorID)->decreaseTrustLvlIn(TRUST_DECREASE_C2);
+                nN->increaseIncidenceNum(INCIDENT_INCREASE);
 
                 //Reply with UPDATE_HASH msg
                 strcpy(sendBuffer, "UPDATE_HASH");

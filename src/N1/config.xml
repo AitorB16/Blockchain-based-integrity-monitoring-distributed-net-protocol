@@ -35,5 +35,35 @@
             <port>25574</port>
             <pub>./RSA_keys/RSA_pub5.der</pub>
         </node>
+        <node>
+            <id>6</id>
+            <ip>127.0.0.1</ip>
+            <port>25575</port>
+            <pub>./RSA_keys/RSA_pub6.der</pub>
+        </node>
+        <node>
+            <id>7</id>
+            <ip>127.0.0.1</ip>
+            <port>25576</port>
+            <pub>./RSA_keys/RSA_pub7.der</pub>
+        </node>
+        <node>
+            <id>8</id>
+            <ip>127.0.0.1</ip>
+            <port>25577</port>
+            <pub>./RSA_keys/RSA_pub8.der</pub>
+        </node>
+        <node>
+            <id>9</id>
+            <ip>127.0.0.1</ip>
+            <port>25578</port>
+            <pub>./RSA_keys/RSA_pub9.der</pub>
+        </node>
+        <node>
+            <id>10</id>
+            <ip>127.0.0.1</ip>
+            <port>25579</port>
+            <pub>./RSA_keys/RSA_pub10.der</pub>
+        </node>
     </network>
 </config>

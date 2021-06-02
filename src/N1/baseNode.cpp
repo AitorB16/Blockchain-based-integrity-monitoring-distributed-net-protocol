@@ -92,7 +92,7 @@ void baseNode::updateNodeBChain(string hash)
     string prevHash;
     pthread_mutex_lock(&lockNodeBChain);
     prevHash = nodeBChain.back();
-    hash = stream2hex(hashText(prevHash + "\n" + hash));
+    hash = hashText(prevHash + "\n" + hash);
     nodeBChain.push_back(hash);
     pthread_mutex_unlock(&lockNodeBChain);
 }

@@ -9,6 +9,8 @@
 #include <cryptopp/osrng.h>
 #include <cryptopp/base64.h>
 #include <cryptopp/files.h>
+#include <cryptopp/hex.h>
+
 
 std::string hashText(std::string inputText);
 void generate_keys(std::string key_ID);

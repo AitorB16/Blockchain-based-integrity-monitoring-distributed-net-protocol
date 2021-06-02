@@ -15,6 +15,8 @@
 #include <fstream>
 #include <vector>
 
+#include <cmath>
+
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -70,9 +72,9 @@ public:
     bool validateMsg(int selfID, int clientID, int syncNumReceived, string MsgToVerify, string MsgSignature);
     bool sendString(int code, int destID, int sourceID, string content = "");
     void sendStringToAll(int code, int sourceID, string content = "");
-    int waitResponses(int resNum, int select_time);
+    int waitResponses(int resNum, int selecTime);
     int getTrustedRandomNode();
-    void resetTrustLvl();
+    void resetIncidenceNum();
     void pauseAuditor();
     void resumeAuditor();
     // void sendPackage();sendPackage Google buffer, XML

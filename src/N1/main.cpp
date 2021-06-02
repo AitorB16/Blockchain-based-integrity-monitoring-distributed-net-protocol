@@ -161,13 +161,13 @@ int main(void)
     cout << "Deploying the network... wait please" << endl;
 
     //sleep random number to not overload the system + a minimum time to let the system deploy
-    sleep(get_randomNumber(TIME_SPACE_BEFORE_AUDIT) + TIME_SPACE_BEFORE_AUDIT / 3);
+    sleep(getRandomNumber(TIME_SPACE_BEFORE_AUDIT) + DEPLOY_TIME + TIME_SPACE_BEFORE_AUDIT / 3);
 
     //Sync method to achieve consisntency before launching the auditor
     if (updateSelfHash(HASH_UPDATE_TIMESPACE_MAX) == 0)
     {
-        //Wait until the whole system is deployed
-        sleep(TIME_SPACE_BEFORE_AUDIT * 2);
+        //Wait until the whole system is deployed ... + 1 + TOLERANCE
+        sleep(TIME_SPACE_BEFORE_AUDIT + TIME_SPACE_BEFORE_AUDIT / 3 + 1);
 
         //Launch the auditor
         if (pthread_create(&auditorTid, NULL, auditorThread, NULL) != 0)
@@ -203,10 +203,7 @@ int main(void)
                 cout << "I'm not trusted by the network, not recieving updates anymore; my data is not valid" << endl;
                 Logger("I'm not trusted by the network, not recieving updates anymore; my data is not valid");
             }
-            else
-            {
-                net->printNetwork();
-            }
+            net->printNetwork();
             break;
         //BCAST request to send + timeout + count
         case 2:
