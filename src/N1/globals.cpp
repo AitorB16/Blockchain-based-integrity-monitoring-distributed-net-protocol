@@ -1,8 +1,0 @@
-#include "globals.hpp"
-
-//DEFAULT VALUE SILENT
-int EXEC_MODE = DEFAULT_MODE;
-
-int TRUST_LEVEL = -1;
-int MAX_INCIDENCES = -1;
-int TIME_RESET_INCIDENTS = -1;
