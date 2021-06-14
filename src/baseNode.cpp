@@ -36,6 +36,18 @@ void baseNode::setID(int ID)
     baseNode::ID = ID;
 }
 
+/* Get Node socket */
+int baseNode::getSock()
+{
+    return baseNode::sock;
+}
+
+/* Get Node IP address */
+sockaddr_in baseNode::getAddr()
+{
+    return baseNode::addr;
+}
+
 /* Get ChangeFlag status */
 bool baseNode::getChangeFlag()
 {
@@ -53,18 +65,6 @@ void baseNode::setChangeFlag(bool flagValue)
     pthread_mutex_lock(&lockChangeFlag);
     baseNode::changeFlag = flagValue;
     pthread_mutex_unlock(&lockChangeFlag);
-}
-
-/* Get Node socket */
-int baseNode::getSock()
-{
-    return baseNode::sock;
-}
-
-/* Get Node IP address */
-sockaddr_in baseNode::getAddr()
-{
-    return baseNode::addr;
 }
 
 /* Get Node latest good hash */

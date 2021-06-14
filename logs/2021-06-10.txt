@@ -1,0 +1,41 @@
+2021-06-10 12:26:40	Srv - Server UP
+2021-06-10 12:26:40	Lnk - Linker UP
+2021-06-10 12:27:05	Srv - Change flag activated of - ID: 4
+2021-06-10 12:27:05	Srv - Success sending ACK reply - ID: 4
+2021-06-10 12:27:10	Srv - Change flag activated of - ID: 5
+2021-06-10 12:27:10	Srv - Success sending ACK reply - ID: 5
+2021-06-10 12:27:12	Srv - Change flag activated of - ID: 3
+2021-06-10 12:27:12	Srv - Success sending ACK reply - ID: 3
+2021-06-10 12:27:33	Error connection: 8
+2021-06-10 12:27:33	Error connection: 9
+2021-06-10 12:27:33	Error connection: 10
+2021-06-10 12:27:36	Srv - Change flag activated of - ID: 6
+2021-06-10 12:27:36	Srv - Success sending ACK reply - ID: 6
+2021-06-10 12:27:37	Srv - Change flag activated of - ID: 2
+2021-06-10 12:27:37	Srv - Success sending ACK reply - ID: 2
+2021-06-10 12:27:46	Srv - Change flag activated of - ID: 7
+2021-06-10 12:27:46	Srv - Success sending ACK reply - ID: 7
+2021-06-10 12:32:05	Srv - Last hash values eq to received - ID: 4 Hash: 0000000000000000000000000000000000000000000000000000000000000000
+2021-06-10 12:32:10	Srv - Last hash values eq to received - ID: 5 Hash: 0000000000000000000000000000000000000000000000000000000000000000
+2021-06-10 12:32:12	Srv - Last hash values eq to received - ID: 3 Hash: 0000000000000000000000000000000000000000000000000000000000000000
+2021-06-10 12:32:33	Error connection: 8
+2021-06-10 12:32:33	Error connection: 9
+2021-06-10 12:32:33	Error connection: 10
+2021-06-10 12:32:33	Hash sent - Hash: 0000000000000000000000000000000000000000000000000000000000000000
+2021-06-10 12:32:36	Srv - Last hash values eq to received - ID: 6 Hash: 0000000000000000000000000000000000000000000000000000000000000000
+2021-06-10 12:32:37	Srv - Last hash values eq to received - ID: 2 Hash: 0000000000000000000000000000000000000000000000000000000000000000
+2021-06-10 12:32:46	Srv - Last hash values eq to received - ID: 7 Hash: 0000000000000000000000000000000000000000000000000000000000000000
+2021-06-10 12:34:24	Aud - Auditor UP
+2021-06-10 12:34:36	Error connection: 8
+2021-06-10 12:34:51	Error connection: 9
+2021-06-10 12:35:03	Error connection: 10
+2021-06-10 14:41:44	Srv - Disconnected message was faked - ID: 6 SyncNumStored: 145 SyncNumReceived: 144
+2021-06-10 14:41:46	Aud - Node doesnt trust me - ID: 6 SyncNum: 145
+2021-06-10 14:41:58	Srv - Disconnected message was faked - ID: 6 SyncNumStored: 146 SyncNumReceived: 145
+2021-06-10 14:42:06	Aud - Node doesnt trust me - ID: 6 SyncNum: 148
+2021-06-10 14:42:11	Aud - Node doesnt trust me - ID: 2 SyncNum: 173
+2021-06-10 14:42:25	Srv - Disconnected message was faked - ID: 2 SyncNumStored: 173 SyncNumReceived: 172
+2021-06-10 14:48:00	Package lost, resyncing - ID: 7
+2021-06-10 14:50:55	Error connection: 2
+2021-06-10 14:50:58	Aud - STOPPING AUDITOR, NO TRUSTED NODES LEFT; NETWORK COMPROMETED
+2021-06-10 14:51:00	Srv - SERVER STOPPED

@@ -13,7 +13,6 @@
 #include "globals.hpp"
 
 std::string hashText(std::string inputText);
-void generate_keys(std::string key_ID);
 CryptoPP::RSA::PublicKey get_pub(std::string key_ID);
 CryptoPP::RSA::PrivateKey get_prv(std::string key_ID);
 std::string sign(std::string msg, std::string key_ID);

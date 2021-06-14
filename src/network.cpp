@@ -175,15 +175,6 @@ void network::setNetworkToComprometed()
     pthread_mutex_unlock(&lockNetworkComprometed);
 }
 
-/* Verify input psswd by hashing it */
-bool network::verifyPasswd(string inPswd)
-{
-    if (passwdSHA256 == hashText(inPswd))
-        return true;
-    else
-        return false;
-}
-
 /* Print network overview */
 void network::printNetwork()
 {
@@ -195,6 +186,15 @@ void network::printNetwork()
         else
             std::cout << "NOT TRUSTED - Node ID: " << i->getID() << " # Hash: " << i->getLastConflictiveHash() << " # BCHash: " << i->getLastNodeBChain() << endl;
     }
+}
+
+/* Verify input psswd by hashing it */
+bool network::verifyPasswd(string inPswd)
+{
+    if (passwdSHA256 == hashText(inPswd))
+        return true;
+    else
+        return false;
 }
 
 /* Connect to all trusted nodes by iteration */

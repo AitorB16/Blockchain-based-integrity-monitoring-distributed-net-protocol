@@ -21,23 +21,23 @@ private:
 public:
     netNode();
     netNode(int ID, char *ip, int port, CryptoPP::RSA::PublicKey pub);
-    string getLastConflictiveHash();
-    void updateConflictiveHashList(string hash);
-    void printConflictiveHashList();
     int getSyncNum();
     void setSyncNum(int num);
-    bool isTrusted();
     int getTrustLvl();
     void setTrustLvl(int trl);
+    bool isTrusted();
     void decreaseTrustLvlIn(int sub);
     int getincidentNum();
     void setincidentNum(int iN);
     void increaseincidentNum(int sum);
     void resetincidentNum();
     bool isConnected();
+    int estConnection();
+    string getLastConflictiveHash();
+    void updateConflictiveHashList(string hash);
+    void printConflictiveHashList();
     void createClientSocket();
     void resetClientSocket();
-    int estConnection();
     int sendString(const char *buffer);
     string recvString();
 };

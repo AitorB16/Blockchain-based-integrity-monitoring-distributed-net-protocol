@@ -23,33 +23,6 @@ netNode::netNode(int ID, char *ip, int port, CryptoPP::RSA::PublicKey pub)
     pthread_mutex_init(&lockConfHashRecord, NULL);
 }
 
-/* Get latest conflictive hash */ 
-string netNode::getLastConflictiveHash()
-{
-    string hash;
-    pthread_mutex_lock(&lockConfHashRecord);
-    hash = conflictiveHashRecord.back();
-    pthread_mutex_unlock(&lockConfHashRecord);
-    return splitBuffer(hash.c_str()).at(0);
-}
-
-/* Insert new hash into conflictive LIFO hashRecord */ 
-void netNode::updateConflictiveHashList(string hash)
-{
-    pthread_mutex_lock(&lockConfHashRecord);
-    conflictiveHashRecord.push_back(hash + "; sec - " + to_string(nodeBChain.size()));
-    pthread_mutex_unlock(&lockConfHashRecord);
-}
-
-/* Print conflictive hash record */ 
-void netNode::printConflictiveHashList()
-{
-    for (auto &i : conflictiveHashRecord)
-    {
-        cout << "* " << i << endl;
-    }
-}
-
 /* Get synchronization number */ 
 int netNode::getSyncNum()
 {
@@ -68,19 +41,6 @@ void netNode::setSyncNum(int num)
     pthread_mutex_unlock(&lockSyncNum);
 }
 
-/* Get node trust estatus */ 
-bool netNode::isTrusted()
-{
-    int tmpTrustLvl;
-    pthread_mutex_lock(&lockTrustLvl);
-    tmpTrustLvl = trustLvl;
-    pthread_mutex_unlock(&lockTrustLvl);
-    if (tmpTrustLvl > 0)
-        return true;
-    else
-        return false;
-}
-
 /* Get node trust level */ 
 int netNode::getTrustLvl()
 {
@@ -97,6 +57,19 @@ void netNode::setTrustLvl(int trl)
     pthread_mutex_lock(&lockTrustLvl);
     trustLvl = trl;
     pthread_mutex_unlock(&lockTrustLvl);
+}
+
+/* Get node trust estatus */ 
+bool netNode::isTrusted()
+{
+    int tmpTrustLvl;
+    pthread_mutex_lock(&lockTrustLvl);
+    tmpTrustLvl = trustLvl;
+    pthread_mutex_unlock(&lockTrustLvl);
+    if (tmpTrustLvl > 0)
+        return true;
+    else
+        return false;
 }
 
 /* Decrease trust level by sub */ 
@@ -156,6 +129,47 @@ bool netNode::isConnected()
     return tmpConnected;
 }
 
+/* Open a connection */  
+int netNode::estConnection()
+{
+    if (connect(sock, (struct sockaddr *)&addr, sizeof(addr)) < 0)
+    {
+        return -1;
+    }
+    else
+    {
+        connected = true;
+        return 0;
+    }
+}
+
+/* Get latest conflictive hash */ 
+string netNode::getLastConflictiveHash()
+{
+    string hash;
+    pthread_mutex_lock(&lockConfHashRecord);
+    hash = conflictiveHashRecord.back();
+    pthread_mutex_unlock(&lockConfHashRecord);
+    return splitBuffer(hash.c_str()).at(0);
+}
+
+/* Insert new hash into conflictive LIFO hashRecord */ 
+void netNode::updateConflictiveHashList(string hash)
+{
+    pthread_mutex_lock(&lockConfHashRecord);
+    conflictiveHashRecord.push_back(hash + "; sec - " + to_string(nodeBChain.size()));
+    pthread_mutex_unlock(&lockConfHashRecord);
+}
+
+/* Print conflictive hash record */ 
+void netNode::printConflictiveHashList()
+{
+    for (auto &i : conflictiveHashRecord)
+    {
+        cout << "* " << i << endl;
+    }
+}
+
 /* Create socket used wrap */  
 void netNode::createClientSocket()
 {
@@ -187,20 +201,6 @@ void netNode::resetClientSocket()
 
     /* Set connected to false */
     connected = false;
-}
-
-/* Open a connection */  
-int netNode::estConnection()
-{
-    if (connect(sock, (struct sockaddr *)&addr, sizeof(addr)) < 0)
-    {
-        return -1;
-    }
-    else
-    {
-        connected = true;
-        return 0;
-    }
 }
 
 /* Socket send */  

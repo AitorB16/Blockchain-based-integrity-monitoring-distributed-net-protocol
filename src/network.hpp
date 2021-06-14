@@ -44,8 +44,8 @@ public:
     void updateTrustedNodeNumber();
     bool isNetworkComprometed();
     void setNetworkToComprometed();
-    bool verifyPasswd(string inPswd);
     void printNetwork();
+    bool verifyPasswd(string inPswd);
     bool connectToAllNodes();
     bool connectToNode(int ID);
     void reassembleSocket(int ID);

@@ -1,6 +1,6 @@
 # Distributed integrity monitoring system based on Blockchain technology
 The aim of the project is to create a multi threaded **network protocol** that monitorizes the integrity of other nodes in a **distributed** way; a **Byzantine fault** tolerant **P2P** network.
-A digest describing a filesystem is received from [*File integrity monitoring on linux systems*](http://github.com/aritzherrero4) underlayer, OS level, project and is spreaded to other network nodes. Thus, the nodes will be able to update their local **Blockchains** associated with the sender.
+A digest describing a filesystem is received from [File integrity monitoring on linux systems](https://github.com/aritzherrero4/TFG_fsCheckDaemon) underlayer, OS level, project and is spreaded to other network nodes. Thus, the nodes will be able to update their local **Blockchains** associated with the sender.
 At the same time, each node will audit other nodes randomly, compraing the received hash with the one stored in local dependencies; each node has the whole structure of the network replicated.
 [Refer to full doucmentation](./documentation.pdf)
 
@@ -14,6 +14,8 @@ of self node.
 - **src (main development):** application headers, source files, makefile and network
 deploying shell script.
 - **XML_config (configurations):** XML configuration file.
+
+>Note: Some RSA keys and configuration files have been left as example.
 
 ## Compilation instructions
 To compile use ```make```. To perform a clean build use ```make clean && make```.
@@ -31,10 +33,11 @@ sudo apt-get install build-essential libcrypto++-dev libcrypto++-doc libcrypto++
 The minimum amount of nodes to deploy the system is **3**: Self node + two network nodes.
 
 Before executing the program, key distribution has to be performed. Each node has to know public keys of other nodes as well as have a public and private key-pair. 
-> Note: Key format: RSA DER (binary).
+> Key format: RSA DER (binary).
 
 ### Key distribution
 It is recommended to use a PKI infrastructure to perfrom key distribution. However a C++ key generator program has been created.
+> Keys location and notation: * ./RSA_keys/RSA_prv<ID>.der and ./RSA_keys/RSA_pub<ID>.der *
 
 #### Key generator program
 The application generates a RSA 2048 bit key-pair for a given argv (positive integer ID) node.
@@ -133,7 +136,7 @@ The plain text corresponding to the entered SHA256 password (XML) is requested a
 ## Linked OS level implementation
 The application is located in a particular context, where an underlayer OS level application elaborates a hash from a tracked filesystem using **Merkle Tree**. The network protocol should be running alongside the OS daemon.
 
-To more information refer to [File integrity monitoring on linux systems](http://github.com/aritzherrero4) repository.
+To more information refer to [File integrity monitoring on linux systems](https://github.com/aritzherrero4/TFG_fsCheckDaemon) repository.
 
 ## Author
 

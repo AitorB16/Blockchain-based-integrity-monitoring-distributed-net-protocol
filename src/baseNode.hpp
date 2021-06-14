@@ -40,10 +40,10 @@ public:
     baseNode(int ID, char *ip, int port, CryptoPP::RSA::PublicKey pub);
     int getID();
     void setID(int ID);
-    bool getChangeFlag();
-    void setChangeFlag(bool flagValue);
     int getSock();
     sockaddr_in getAddr();
+    bool getChangeFlag();
+    void setChangeFlag(bool flagValue);
     string getLastHash();
     void updateHashList(string hash);
     void printHashList();
