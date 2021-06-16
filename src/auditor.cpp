@@ -52,10 +52,10 @@ int auditor::auditorUP()
         {
 
             /* If network not trusted, kill thread */
-            if (selfNetwork->isNetworkComprometed())
+            if (selfNetwork->isNetworkCompromised())
             {
-                cout << "Aud - STOPPING AUDITOR, NETWORK COMPROMETED" << endl;
-                Logger("Aud - STOPPING AUDITOR, NETWORK COMPROMETED");
+                cout << "Aud - STOPPING AUDITOR, NETWORK COMPROMISED" << endl;
+                Logger("Aud - STOPPING AUDITOR, NETWORK COMPROMISED");
                 return 1;
             }
 
@@ -64,9 +64,9 @@ int auditor::auditorUP()
             /* If not enough nodes are trusted */
             if (auditedID == -1)
             {
-                selfNetwork->setNetworkToComprometed();
-                cout << "Aud - STOPPING AUDITOR, NO TRUSTED NODES LEFT; NETWORK COMPROMETED" << endl;
-                Logger("Aud - STOPPING AUDITOR, NO TRUSTED NODES LEFT; NETWORK COMPROMETED");
+                selfNetwork->setNetworkToCompromised();
+                cout << "Aud - STOPPING AUDITOR, NO TRUSTED NODES LEFT; NETWORK COMPROMISED" << endl;
+                Logger("Aud - STOPPING AUDITOR, NO TRUSTED NODES LEFT; NETWORK COMPROMISED");
                 /* End auditor */
                 return 1;
             }
@@ -112,7 +112,7 @@ void auditor::auditNode(int auditedID)
                         cout << "Aud - Message was faked" << endl;
                     Logger("Aud - Message was faked");
                     /* Decrease confidence in node */
-                    auditedNode->increaseincidentNum(INCIDENT_INCREASE);
+                    auditedNode->increaseIncidentNum(INCIDENT_INCREASE);
                     selfNetwork->reassembleSocket(auditedID);
                 }
                 /* Valid data is received */
@@ -150,20 +150,20 @@ void auditor::auditNode(int auditedID)
                         /* The network doesnt answer if value doesnt need to be updated */
                         else
                         {
-                            /* Insert conflictive hash in list */
-                            if (auditedNode->getLastConflictiveHash() != content)
+                            /* Insert troublesome hash in list */
+                            if (auditedNode->getLastTroublesomeHash() != content)
                             {
-                                auditedNode->updateConflictiveHashList(content);
+                                auditedNode->updateTroublesomeHashList(content);
                                 auditedNode->updateNodeBChain(content);
                                 if (EXEC_MODE == DEBUG_MODE)
-                                    cout << "Aud - Last conflictive Hash updated - ID: " << auditedID << " Hash: " << content;
-                                Logger("Aud  - Last conflictive Hash updated - ID: " + to_string(auditedID) + " Hash: " + content);
+                                    cout << "Aud - Last troublesome Hash updated - ID: " << auditedID << " Hash: " << content;
+                                Logger("Aud  - Last troublesome Hash updated - ID: " + to_string(auditedID) + " Hash: " + content);
                             }
                             else
                             {
                                 if (EXEC_MODE == DEBUG_MODE)
-                                    cout << "Aud - Last conflictive hash values eq to blamed - ID: " << auditedID << " Hash: " << content << endl;
-                                Logger("Aud - Last conflictive hash values eq to blamed - ID: " + to_string(auditedID) + " Hash: " + content);
+                                    cout << "Aud - Last troublesome hash values eq to blamed - ID: " << auditedID << " Hash: " << content << endl;
+                                Logger("Aud - Last troublesome hash values eq to blamed - ID: " + to_string(auditedID) + " Hash: " + content);
                             }
                             if (EXEC_MODE == DEBUG_MODE)
                                 cout << "Aud - Blame to - ID: " << auditedID << " ended successfully" << endl;
@@ -180,7 +180,7 @@ void auditor::auditNode(int auditedID)
             catch (const std::exception &e)
             {
 
-                auditedNode->increaseincidentNum(INCIDENT_INCREASE);
+                auditedNode->increaseIncidentNum(INCIDENT_INCREASE);
 
                 selfNetwork->reassembleSocket(auditedID);
                 if (EXEC_MODE == DEBUG_MODE)
@@ -192,6 +192,6 @@ void auditor::auditNode(int auditedID)
     /* Error connecting to audited node */
     else
     {
-        auditedNode->increaseincidentNum(INCIDENT_INCREASE);
+        auditedNode->increaseIncidentNum(INCIDENT_INCREASE);
     }
 }

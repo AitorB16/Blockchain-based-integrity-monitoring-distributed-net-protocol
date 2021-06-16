@@ -45,11 +45,11 @@ network::network()
     /* Clear Select() parameters */
     FD_ZERO(&readfds);          //clear the socket set
     maxFD = -1;                 //initialize maxFD
-    networkComprometed = false; //Network is trusted
+    networkCompromised = false; //Network is trusted
 
     /* Init mutexes */
     pthread_mutex_init(&lockTrustedNodeNumber, NULL);
-    pthread_mutex_init(&lockNetworkComprometed, NULL);
+    pthread_mutex_init(&lockNetworkCompromised, NULL);
     try
     {
 
@@ -158,21 +158,21 @@ void network::updateTrustedNodeNumber()
 }
 
 /* Return network trust status */
-bool network::isNetworkComprometed()
+bool network::isNetworkCompromised()
 {
-    bool tmpNetworkComprometed;
-    pthread_mutex_lock(&lockNetworkComprometed);
-    tmpNetworkComprometed = networkComprometed;
-    pthread_mutex_unlock(&lockNetworkComprometed);
-    return tmpNetworkComprometed;
+    bool tmpNetworkCompromised;
+    pthread_mutex_lock(&lockNetworkCompromised);
+    tmpNetworkCompromised = networkCompromised;
+    pthread_mutex_unlock(&lockNetworkCompromised);
+    return tmpNetworkCompromised;
 }
 
-/* Set network to comprometed */
-void network::setNetworkToComprometed()
+/* Set network to compromised */
+void network::setNetworkToCompromised()
 {
-    pthread_mutex_lock(&lockNetworkComprometed);
-    networkComprometed = true;
-    pthread_mutex_unlock(&lockNetworkComprometed);
+    pthread_mutex_lock(&lockNetworkCompromised);
+    networkCompromised = true;
+    pthread_mutex_unlock(&lockNetworkCompromised);
 }
 
 /* Print network overview */
@@ -184,7 +184,7 @@ void network::printNetwork()
         if (i->isTrusted())
             std::cout << "TRUSTED - Node ID: " << i->getID() << " # Hash: " << i->getLastHash() << " # BCHash: " << i->getLastNodeBChain() << endl;
         else
-            std::cout << "NOT TRUSTED - Node ID: " << i->getID() << " # Hash: " << i->getLastConflictiveHash() << " # BCHash: " << i->getLastNodeBChain() << endl;
+            std::cout << "NOT TRUSTED - Node ID: " << i->getID() << " # Hash: " << i->getLastTroublesomeHash() << " # BCHash: " << i->getLastNodeBChain() << endl;
     }
 }
 
@@ -213,7 +213,7 @@ bool network::connectToAllNodes()
                         cout << "Error connection: " << i->getID() << endl;
                     Logger("Error connection: " + to_string(i->getID()));
                     /* Decrease confidence if node is not avalible */
-                    i->increaseincidentNum(INCIDENT_INCREASE);
+                    i->increaseIncidentNum(INCIDENT_INCREASE);
                 }
                 else
                 {
@@ -252,7 +252,7 @@ bool network::connectToNode(int ID)
                         cout << "Error connection: " << i->getID() << endl;
                     Logger("Error connection: " + to_string(i->getID()));
                     /* Decrease confidence if node is not avalible */
-                    i->increaseincidentNum(INCIDENT_INCREASE);
+                    i->increaseIncidentNum(INCIDENT_INCREASE);
                 }
                 else
                 {

@@ -10,13 +10,13 @@ private:
     int trustLvl;
     int incidentNum;
     bool connected;
-    list<string> conflictiveHashRecord;
+    list<string> troublesomeHashRecord;
 
     /*Mutexes*/
     pthread_mutex_t lockTrustLvl;
     pthread_mutex_t lockincidentNum;
     pthread_mutex_t lockSyncNum;
-    pthread_mutex_t lockConfHashRecord;
+    pthread_mutex_t lockTroubHashRecord;
 
 public:
     netNode();
@@ -29,13 +29,13 @@ public:
     void decreaseTrustLvlIn(int sub);
     int getincidentNum();
     void setincidentNum(int iN);
-    void increaseincidentNum(int sum);
+    void increaseIncidentNum(int sum);
     void resetincidentNum();
     bool isConnected();
     int estConnection();
-    string getLastConflictiveHash();
-    void updateConflictiveHashList(string hash);
-    void printConflictiveHashList();
+    string getLastTroublesomeHash();
+    void updateTroublesomeHashList(string hash);
+    void printTroublesomeHashList();
     void createClientSocket();
     void resetClientSocket();
     int sendString(const char *buffer);

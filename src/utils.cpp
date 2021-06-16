@@ -56,7 +56,7 @@ void splitVectStringBlame(vector<string> vectString, int &msgCode, int &clientID
     suspectID = atoi(vectString.at(5).c_str());          //Suspicious ID
     auditorID = atoi(vectString.at(6).c_str());          //ID of auditor
     susSyncNumReceived = atoi(vectString.at(7).c_str()); //SyncNum from suspicious reply
-    susContent = vectString.at(8);                       //Conflictive hash
+    susContent = vectString.at(8);                       //Troublesome hash
     susMsgSignature = vectString.at(9);                  //Signed msg
     susMsgToVerify = to_string(susMsgCode) + ";" + to_string(suspectID) + ";" + to_string(auditorID) + ";" + to_string(susSyncNumReceived) + ";" + susContent;
 

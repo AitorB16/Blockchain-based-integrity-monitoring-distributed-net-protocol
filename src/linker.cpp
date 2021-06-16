@@ -11,11 +11,11 @@ int method_updateHash(sd_bus_message *m, void *userdata, sd_bus_error *ret_error
     std::string newHash = str;
 
     /* If network not trusted, kill thread */
-    if (net->isNetworkComprometed())
+    if (net->isNetworkCompromised())
     {
         if (EXEC_MODE == DEBUG_MODE)
-            cout << "Lnk - STOPPING LINKER, NETWORK COMPROMETED" << endl;
-        Logger("Lnk - STOPPING LINKER, NETWORK COMPROMETED");
+            cout << "Lnk - STOPPING LINKER, NETWORK COMPROMISED" << endl;
+        Logger("Lnk - STOPPING LINKER, NETWORK COMPROMISED");
         pthread_exit(NULL);
     }
 

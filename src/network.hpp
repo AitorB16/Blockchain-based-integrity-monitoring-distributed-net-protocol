@@ -16,7 +16,7 @@ class network
 private:
     int netNodeNumber;
     int trustedNodeNumber;
-    bool networkComprometed;
+    bool networkCompromised;
     selfNode *self;
     std::list<netNode *> netNodes;
     string passwdSHA256;
@@ -27,7 +27,7 @@ private:
 
     /*Mutexes*/
     pthread_mutex_t lockTrustedNodeNumber;
-    pthread_mutex_t lockNetworkComprometed;
+    pthread_mutex_t lockNetworkCompromised;
 
     /* Static instance of network - SINGLETON */
     static network *instance;
@@ -42,8 +42,8 @@ public:
     int getNetNodeNumber();
     int getTrustedNodeNumber();
     void updateTrustedNodeNumber();
-    bool isNetworkComprometed();
-    void setNetworkToComprometed();
+    bool isNetworkCompromised();
+    void setNetworkToCompromised();
     void printNetwork();
     bool verifyPasswd(string inPswd);
     bool connectToAllNodes();

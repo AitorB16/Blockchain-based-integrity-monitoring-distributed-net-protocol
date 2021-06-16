@@ -282,7 +282,7 @@ void *socketThread(void *arg)
         /* No request done or time run out */
         else
         {
-            nN->increaseincidentNum(INCIDENT_INCREASE);
+            nN->increaseIncidentNum(INCIDENT_INCREASE);
         }
 
         /* Close connection */
@@ -325,10 +325,10 @@ void *socketThread(void *arg)
                             cout << "Srv - Blamed node is already not trusted - ID: " << suspectID << " Hash: " << susContent << endl;
                         Logger("Srv - Srv - Blamed node is already not trusted - ID: " + to_string(suspectID) + " Hash: " + susContent);
                     }
-                    /* Insert conflictive hash in list */
-                    else if (net->getNode(suspectID)->getLastConflictiveHash() != susContent)
+                    /* Insert troublesome hash in list */
+                    else if (net->getNode(suspectID)->getLastTroublesomeHash() != susContent)
                     {
-                        net->getNode(suspectID)->updateConflictiveHashList(susContent);
+                        net->getNode(suspectID)->updateTroublesomeHashList(susContent);
                         net->getNode(suspectID)->updateNodeBChain(susContent);
 
                         /* Decrease confidence on suspicious */
@@ -337,8 +337,8 @@ void *socketThread(void *arg)
                         net->getNode(auditorID)->decreaseTrustLvlIn(TRUST_DECREASE);
 
                         if (EXEC_MODE == DEBUG_MODE)
-                            cout << "Srv - Last conflictive Hash updated - ID: " << suspectID << " Hash: " << susContent;
-                        Logger("Srv - Last conflictive Hash updated - ID: " + to_string(suspectID) + " Hash: " + susContent);
+                            cout << "Srv - Last troublesome Hash updated - ID: " << suspectID << " Hash: " << susContent;
+                        Logger("Srv - Last troublesome Hash updated - ID: " + to_string(suspectID) + " Hash: " + susContent);
                     }
                     else
                     {
@@ -348,22 +348,22 @@ void *socketThread(void *arg)
                         net->getNode(auditorID)->decreaseTrustLvlIn(TRUST_DECREASE);
 
                         if (EXEC_MODE == DEBUG_MODE)
-                            cout << "Srv - Last conflictive hash values eq to blamed - ID: " << suspectID << " Hash: " << susContent << endl;
-                        Logger("Srv - Last conflictive hash values eq to blamed - ID: " + to_string(suspectID) + " Hash: " + susContent);
+                            cout << "Srv - Last troublesome hash values eq to blamed - ID: " << suspectID << " Hash: " << susContent << endl;
+                        Logger("Srv - Last troublesome hash values eq to blamed - ID: " + to_string(suspectID) + " Hash: " + susContent);
                     }
                 }
                 /* Msg faked by auditor */
                 else
                 {
                     /* Decrease confidence on auditor */
-                    nN->increaseincidentNum(INCIDENT_INCREASE);
+                    nN->increaseIncidentNum(INCIDENT_INCREASE);
                 }
             }
             /* OK the auditor node is not updated */
             else
             {
                 /* Decrease 1 unit confidence on auditor as soft failt */
-                nN->increaseincidentNum(INCIDENT_INCREASE);
+                nN->increaseIncidentNum(INCIDENT_INCREASE);
 
                 /* Reply with UPDATE_HASH msg */
                 strcpy(sendBuffer, "UPDATE_HASH");
@@ -455,8 +455,8 @@ int server::serverUP()
             i = 0;
         }
 
-        /* In case network comprometed, end loop */
-        if (selfNetwork->isNetworkComprometed())
+        /* In case network compromised, end loop */
+        if (selfNetwork->isNetworkCompromised())
         {
             break;
         }

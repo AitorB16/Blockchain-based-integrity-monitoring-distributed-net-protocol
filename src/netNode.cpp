@@ -14,13 +14,13 @@ netNode::netNode(int ID, char *ip, int port, CryptoPP::RSA::PublicKey pub)
     netNode::trustLvl = TRUST_LEVEL;
     netNode::incidentNum = 0;
     netNode::connected = false;
-    netNode::conflictiveHashRecord.push_back(FIRST_HASH_SEC);
+    netNode::troublesomeHashRecord.push_back(FIRST_HASH_SEQ);
 
     /* init mutextes */ 
     pthread_mutex_init(&lockTrustLvl, NULL);
     pthread_mutex_init(&lockincidentNum, NULL);
     pthread_mutex_init(&lockSyncNum, NULL);
-    pthread_mutex_init(&lockConfHashRecord, NULL);
+    pthread_mutex_init(&lockTroubHashRecord, NULL);
 }
 
 /* Get synchronization number */ 
@@ -99,7 +99,7 @@ void netNode::setincidentNum(int iN)
 }
 
 /* Increase incident number by sum */  
-void netNode::increaseincidentNum(int sum)
+void netNode::increaseIncidentNum(int sum)
 {
     pthread_mutex_lock(&lockincidentNum);
     incidentNum += sum;
@@ -143,28 +143,28 @@ int netNode::estConnection()
     }
 }
 
-/* Get latest conflictive hash */ 
-string netNode::getLastConflictiveHash()
+/* Get latest troublesome hash */ 
+string netNode::getLastTroublesomeHash()
 {
     string hash;
-    pthread_mutex_lock(&lockConfHashRecord);
-    hash = conflictiveHashRecord.back();
-    pthread_mutex_unlock(&lockConfHashRecord);
+    pthread_mutex_lock(&lockTroubHashRecord);
+    hash = troublesomeHashRecord.back();
+    pthread_mutex_unlock(&lockTroubHashRecord);
     return splitBuffer(hash.c_str()).at(0);
 }
 
-/* Insert new hash into conflictive LIFO hashRecord */ 
-void netNode::updateConflictiveHashList(string hash)
+/* Insert new hash into troublesome LIFO hashRecord */ 
+void netNode::updateTroublesomeHashList(string hash)
 {
-    pthread_mutex_lock(&lockConfHashRecord);
-    conflictiveHashRecord.push_back(hash + "; sec - " + to_string(nodeBChain.size()));
-    pthread_mutex_unlock(&lockConfHashRecord);
+    pthread_mutex_lock(&lockTroubHashRecord);
+    troublesomeHashRecord.push_back(hash + "; seq - " + to_string(nodeBChain.size()));
+    pthread_mutex_unlock(&lockTroubHashRecord);
 }
 
-/* Print conflictive hash record */ 
-void netNode::printConflictiveHashList()
+/* Print troublesome hash record */ 
+void netNode::printTroublesomeHashList()
 {
-    for (auto &i : conflictiveHashRecord)
+    for (auto &i : troublesomeHashRecord)
     {
         cout << "* " << i << endl;
     }

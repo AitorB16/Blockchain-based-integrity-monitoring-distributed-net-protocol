@@ -15,8 +15,8 @@ baseNode::baseNode(int ID, char *ip, int port, CryptoPP::RSA::PublicKey pub)
     baseNode::port = port;
     baseNode::changeFlag = false;
     baseNode::pub = pub;
-    baseNode::hashRecord.push_back(FIRST_HASH_SEC);
-    baseNode::nodeBChain.push_back(FIRST_HASH );
+    baseNode::hashRecord.push_back(FIRST_HASH_SEQ);
+    baseNode::nodeBChain.push_back(FIRST_HASH);
     
     /* init mutexes */
     pthread_mutex_init(&lockChangeFlag, NULL);
@@ -81,7 +81,7 @@ string baseNode::getLastHash()
 void baseNode::updateHashList(string hash)
 {
     pthread_mutex_lock(&lockHashRecord);
-    hashRecord.push_back(hash + "; sec - " + to_string(nodeBChain.size()));
+    hashRecord.push_back(hash + "; seq - " + to_string(nodeBChain.size()));
     pthread_mutex_unlock(&lockHashRecord);
 }
 

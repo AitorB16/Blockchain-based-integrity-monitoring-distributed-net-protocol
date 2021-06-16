@@ -45,7 +45,7 @@ extern int TIME_RESET_INCIDENTS;
 
 /* Defaulf first hashes */  
 #define FIRST_HASH "0000000000000000000000000000000000000000000000000000000000000000"
-#define FIRST_HASH_SEC FIRST_HASH "; sec - def"
+#define FIRST_HASH_SEQ FIRST_HASH "; seq - def"
 
 #endif
 

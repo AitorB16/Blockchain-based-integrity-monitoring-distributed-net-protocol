@@ -97,12 +97,12 @@ int updateSelfHash(int timeToWork)
         net->reassembleAllSockets();
         return 0;
     }
-    /* Network is comprometed */
+    /* Network is compromised */
     else
     {
-        cout << "Network is comprometed" << endl;
-        Logger("Network is comprometed");
-        net->setNetworkToComprometed();
+        cout << "Network is compromised" << endl;
+        Logger("Network is compromised");
+        net->setNetworkToCompromised();
         net->reassembleAllSockets();
         return 1;
     }
@@ -184,7 +184,7 @@ int main(int argc, char *argv[])
             break;
         /* Print Network overview */
         case 1:
-            if (net->isNetworkComprometed())
+            if (net->isNetworkCompromised())
             {
                 cout << "I'm not trusted by the network, not recieving updates anymore; my data is not valid" << endl;
                 Logger("I'm not trusted by the network, not recieving updates anymore; my data is not valid");
@@ -193,7 +193,7 @@ int main(int argc, char *argv[])
             break;
         /* Print detailed information of a given node */
         case 2:
-            if (net->isNetworkComprometed())
+            if (net->isNetworkCompromised())
             {
                 cout << "I'm not trusted by the network, not recieving updates anymore; my data is not valid" << endl;
                 Logger("I'm not trusted by the network, not recieving updates anymore; my data is not valid");
@@ -210,7 +210,7 @@ int main(int argc, char *argv[])
                 net->getNode(dest)->printHashList();
                 cout << endl;
                 cout << "BAD HASH RECORD" << endl;
-                net->getNode(dest)->printConflictiveHashList();
+                net->getNode(dest)->printTroublesomeHashList();
                 cout << endl;
             }
             else
@@ -230,7 +230,7 @@ int main(int argc, char *argv[])
             cin >> input;
             if (net->verifyPasswd(input))
             {
-                if (!net->isNetworkComprometed())
+                if (!net->isNetworkCompromised())
                 {
                     cout << "Enter time to work in seconds, MAX: " << HASH_UPDATE_TIMESPACE_MAX << " min: " << HASH_UPDATE_TIMESPACE_MIN << endl;
                     cin >> input;
