@@ -1,6 +1,6 @@
 # Distributed integrity monitoring system based on Blockchain technology
-The aim of the project is to create a multi threaded **network protocol** that monitorizes the integrity of other nodes in a **distributed** way; a **Byzantine fault** tolerant **P2P** network.
-A digest describing a filesystem is received from [File integrity monitoring on linux systems](https://github.com/aritzherrero4/TFG_fsCheckDaemon) underlayer, OS level, project and is spreaded to other network nodes. Thus, the nodes will be able to update their local **Blockchains** associated with the sender.
+The aim of the project is to create a multi threaded **network protocol** that monitors the integrity of other nodes in a **distributed** way; a **Byzantine fault** tolerant **P2P** network.
+A digest describing a filesystem is received from [File integrity monitoring on linux systems](https://github.com/aritzherrero4/TFG_fsCheckDaemon) underlayer, OS level, project and is spreaded to other network nodes. Thus, the nodes will be able to update their local **blockchains** associated with the sender.
 At the same time, each node will audit other nodes randomly, compraing the received hash with the one stored in local dependencies; each node has the whole structure of the network replicated.
 [Refer to full doucmentation](./documentation.pdf)
 
@@ -37,7 +37,7 @@ Before executing the program, key distribution has to be performed. Each node ha
 
 ### Key distribution
 It is recommended to use a PKI infrastructure to perfrom key distribution. However a C++ key generator program has been created.
-> Keys location and notation: * ./RSA_keys/RSA_prv<ID>.der and ./RSA_keys/RSA_pub<ID>.der *
+> Location and notation of RSA keys: ./RSA_keys/RSA_prvID.der and ./RSA_keys/RSA_pubID.der
 
 #### Key generator program
 The application generates a RSA 2048 bit key-pair for a given argv (positive integer ID) node.
