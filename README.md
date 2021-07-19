@@ -1,8 +1,7 @@
 # Distributed integrity monitoring system based on Blockchain technology
 The aim of the project is to create a multi threaded **network protocol** that monitors the integrity of other nodes in a **distributed** way; a **Byzantine fault** tolerant **P2P** network.
-A digest describing a filesystem is received from [File integrity monitoring on linux systems](https://github.com/aritzherrero4/TFG_fsCheckDaemon) underlayer, OS level, project and is spreaded to other network nodes. Thus, the nodes will be able to update their local **blockchains** associated with the sender.
-At the same time, each node will audit other nodes randomly, compraing the received hash with the one stored in local dependencies; each node has the whole structure of the network replicated.
-[Refer to full doucmentation](./documentation.pdf)
+A digest describing a filesystem is received from [File integrity monitoring on linux systems](https://github.com/aritzherrero4/fsCheckDaemon) underlayer, OS level, project and is spreaded to other network nodes. Thus, the nodes will be able to update their local **blockchains** associated with the sender.
+At the same time, each node will audit other nodes randomly, compraing the received hash with the one stored in local dependencies; each node has the whole structure of the network replicated. [Check the implementation diagram](./UML.svg)
 
 ## Directory structure
 - **deploy_utils (deploying scripts and tools):** XML generator python script, C++ RSA
@@ -127,6 +126,7 @@ Once the network is deployed and consistency achieved in all the nodes, a menu w
 
 ### Network overview info
 Displays network trustiness, whether each node is trusted or not as well as the latest valid hash and blockchain digest of them.
+
 ### Specific node info
 A specific node ID is requested to display a complete breakdown of all its information: Trustiness in the node, complete good, bad and blockchain records.
 
@@ -136,7 +136,7 @@ The plain text corresponding to the entered SHA256 password (XML) is requested a
 ## Linked OS level implementation
 The application is located in a particular context, where an underlayer OS level application elaborates a hash from a tracked filesystem using **Merkle Tree**. The network protocol should be running alongside the OS daemon.
 
-To more information refer to [File integrity monitoring on linux systems](https://github.com/aritzherrero4/TFG_fsCheckDaemon) repository.
+To more information refer to [File integrity monitoring on linux systems](https://github.com/aritzherrero4/fsCheckDaemon) repository.
 
 ## Author
 
